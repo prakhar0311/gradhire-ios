@@ -1,0 +1,749 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		F40D62562F28DDC4004651FB /* UploadResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62552F28DDC4004651FB /* UploadResumeView.swift */; };
+		F40D62582F28E03E004651FB /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62572F28E03E004651FB /* Job.swift */; };
+		F40D625A2F28E065004651FB /* JobListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62592F28E065004651FB /* JobListView.swift */; };
+		F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625B2F28E15E004651FB /* JobDetailView.swift */; };
+		F40D625E2F28E23A004651FB /* OptimizeResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */; };
+		F40D62602F28E600004651FB /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625F2F28E600004651FB /* APIService.swift */; };
+		F40D62642F2A5510004651FB /* ResumeOptimizationResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */; };
+		F47760122F3A250700FFE828 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F47760112F3A250700FFE828 /* ShareSheet.swift */; };
+		F47760142F3A5D7800FFE828 /* ResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F47760132F3A5D7800FFE828 /* ResumeManager.swift */; };
+		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
+		F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */; };
+		F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */; };
+		F4DF0DC82F2DEC4600961C4A /* SavedJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */; };
+		F4DF0DCA2F2DEC7E00961C4A /* EmptySavedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */; };
+		F4DF0DCD2F2E1CB000961C4A /* EmptyJobResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */; };
+		F4DF0DCF2F2E1F7D00961C4A /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */; };
+		F4DF0DD22F2E2ABB00961C4A /* SkeletonJobCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */; };
+		F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */; };
+		F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F06FBE2F2F3FBA0056BD2B /* JobAPIService.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F40D62352F28DCA8004651FB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F40D621F2F28DCA7004651FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F40D62262F28DCA7004651FB;
+			remoteInfo = GradHire;
+		};
+		F40D623F2F28DCA8004651FB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F40D621F2F28DCA7004651FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F40D62262F28DCA7004651FB;
+			remoteInfo = GradHire;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		F40D62272F28DCA7004651FB /* GradHire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GradHire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F40D62342F28DCA8004651FB /* GradHireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F40D623E2F28DCA8004651FB /* GradHireUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F40D62552F28DDC4004651FB /* UploadResumeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UploadResumeView.swift; sourceTree = "<group>"; };
+		F40D62572F28E03E004651FB /* Job.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Job.swift; sourceTree = "<group>"; };
+		F40D62592F28E065004651FB /* JobListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobListView.swift; sourceTree = "<group>"; };
+		F40D625B2F28E15E004651FB /* JobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobDetailView.swift; sourceTree = "<group>"; };
+		F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeView.swift; sourceTree = "<group>"; };
+		F40D625F2F28E600004651FB /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeOptimizationResponse.swift; sourceTree = "<group>"; };
+		F47760112F3A250700FFE828 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		F47760132F3A5D7800FFE828 /* ResumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeManager.swift; sourceTree = "<group>"; };
+		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
+		F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkManager.swift; sourceTree = "<group>"; };
+		F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedJobsView.swift; sourceTree = "<group>"; };
+		F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySavedState.swift; sourceTree = "<group>"; };
+		F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyJobResultView.swift; sourceTree = "<group>"; };
+		F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorStateView.swift; sourceTree = "<group>"; };
+		F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonJobCard.swift; sourceTree = "<group>"; };
+		F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
+		F4F06FBE2F2F3FBA0056BD2B /* JobAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobAPIService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F40D62622F28EC75004651FB /* Exceptions for "GradHire" folder in "GradHire" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F40D62262F28DCA7004651FB /* GradHire */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		F40D62292F28DCA7004651FB /* GradHire */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F40D62622F28EC75004651FB /* Exceptions for "GradHire" folder in "GradHire" target */,
+			);
+			path = GradHire;
+			sourceTree = "<group>";
+		};
+		F40D62372F28DCA8004651FB /* GradHireTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GradHireTests;
+			sourceTree = "<group>";
+		};
+		F40D62412F28DCA8004651FB /* GradHireUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = GradHireUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F40D62242F28DCA7004651FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D62312F28DCA8004651FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D623B2F28DCA8004651FB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		F40D621E2F28DCA7004651FB = {
+			isa = PBXGroup;
+			children = (
+				F4F06FBB2F2F3F630056BD2B /* Network */,
+				F4DF0DC12F2DDD5300961C4A /* Managers */,
+				F40D62542F28DD03004651FB /* ViewModels */,
+				F40D62532F28DCF1004651FB /* Services */,
+				F40D62522F28DCDD004651FB /* Models */,
+				F40D62512F28DCC0004651FB /* Views */,
+				F40D62292F28DCA7004651FB /* GradHire */,
+				F40D62372F28DCA8004651FB /* GradHireTests */,
+				F40D62412F28DCA8004651FB /* GradHireUITests */,
+				F40D62282F28DCA7004651FB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F40D62282F28DCA7004651FB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F40D62272F28DCA7004651FB /* GradHire.app */,
+				F40D62342F28DCA8004651FB /* GradHireTests.xctest */,
+				F40D623E2F28DCA8004651FB /* GradHireUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		F40D62512F28DCC0004651FB /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				F4DF0DD02F2E2A9B00961C4A /* Components */,
+				F4DF0DCB2F2E1C9000961C4A /* States */,
+				F4DF0DC62F2DEC1E00961C4A /* Saved */,
+				F40D62552F28DDC4004651FB /* UploadResumeView.swift */,
+				F40D62592F28E065004651FB /* JobListView.swift */,
+				F40D625B2F28E15E004651FB /* JobDetailView.swift */,
+				F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */,
+				F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		F40D62522F28DCDD004651FB /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F40D62572F28E03E004651FB /* Job.swift */,
+				F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		F40D62532F28DCF1004651FB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				F40D625F2F28E600004651FB /* APIService.swift */,
+				F4C820512F34E1390068DBAA /* NetworkMonitor.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		F40D62542F28DD03004651FB /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		F4DF0DC12F2DDD5300961C4A /* Managers */ = {
+			isa = PBXGroup;
+			children = (
+				F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */,
+				F47760132F3A5D7800FFE828 /* ResumeManager.swift */,
+			);
+			path = Managers;
+			sourceTree = "<group>";
+		};
+		F4DF0DC62F2DEC1E00961C4A /* Saved */ = {
+			isa = PBXGroup;
+			children = (
+				F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */,
+				F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */,
+			);
+			path = Saved;
+			sourceTree = "<group>";
+		};
+		F4DF0DCB2F2E1C9000961C4A /* States */ = {
+			isa = PBXGroup;
+			children = (
+				F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */,
+				F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */,
+			);
+			path = States;
+			sourceTree = "<group>";
+		};
+		F4DF0DD02F2E2A9B00961C4A /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */,
+				F47760112F3A250700FFE828 /* ShareSheet.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		F4F06FBB2F2F3F630056BD2B /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */,
+				F4F06FBE2F2F3FBA0056BD2B /* JobAPIService.swift */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F40D62262F28DCA7004651FB /* GradHire */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F40D62482F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHire" */;
+			buildPhases = (
+				F40D62232F28DCA7004651FB /* Sources */,
+				F40D62242F28DCA7004651FB /* Frameworks */,
+				F40D62252F28DCA7004651FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F40D62292F28DCA7004651FB /* GradHire */,
+			);
+			name = GradHire;
+			packageProductDependencies = (
+			);
+			productName = GradHire;
+			productReference = F40D62272F28DCA7004651FB /* GradHire.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F40D62332F28DCA8004651FB /* GradHireTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F40D624B2F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHireTests" */;
+			buildPhases = (
+				F40D62302F28DCA8004651FB /* Sources */,
+				F40D62312F28DCA8004651FB /* Frameworks */,
+				F40D62322F28DCA8004651FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F40D62362F28DCA8004651FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F40D62372F28DCA8004651FB /* GradHireTests */,
+			);
+			name = GradHireTests;
+			packageProductDependencies = (
+			);
+			productName = GradHireTests;
+			productReference = F40D62342F28DCA8004651FB /* GradHireTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F40D623D2F28DCA8004651FB /* GradHireUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F40D624E2F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHireUITests" */;
+			buildPhases = (
+				F40D623A2F28DCA8004651FB /* Sources */,
+				F40D623B2F28DCA8004651FB /* Frameworks */,
+				F40D623C2F28DCA8004651FB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F40D62402F28DCA8004651FB /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F40D62412F28DCA8004651FB /* GradHireUITests */,
+			);
+			name = GradHireUITests;
+			packageProductDependencies = (
+			);
+			productName = GradHireUITests;
+			productReference = F40D623E2F28DCA8004651FB /* GradHireUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F40D621F2F28DCA7004651FB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					F40D62262F28DCA7004651FB = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					F40D62332F28DCA8004651FB = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = F40D62262F28DCA7004651FB;
+					};
+					F40D623D2F28DCA8004651FB = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = F40D62262F28DCA7004651FB;
+					};
+				};
+			};
+			buildConfigurationList = F40D62222F28DCA7004651FB /* Build configuration list for PBXProject "GradHire" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = F40D621E2F28DCA7004651FB;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F40D62282F28DCA7004651FB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F40D62262F28DCA7004651FB /* GradHire */,
+				F40D62332F28DCA8004651FB /* GradHireTests */,
+				F40D623D2F28DCA8004651FB /* GradHireUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F40D62252F28DCA7004651FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D62322F28DCA8004651FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D623C2F28DCA8004651FB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F40D62232F28DCA7004651FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */,
+				F40D625E2F28E23A004651FB /* OptimizeResumeView.swift in Sources */,
+				F4DF0DCD2F2E1CB000961C4A /* EmptyJobResultView.swift in Sources */,
+				F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */,
+				F40D62602F28E600004651FB /* APIService.swift in Sources */,
+				F47760142F3A5D7800FFE828 /* ResumeManager.swift in Sources */,
+				F40D62562F28DDC4004651FB /* UploadResumeView.swift in Sources */,
+				F40D62582F28E03E004651FB /* Job.swift in Sources */,
+				F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */,
+				F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */,
+				F40D62642F2A5510004651FB /* ResumeOptimizationResponse.swift in Sources */,
+				F4DF0DCA2F2DEC7E00961C4A /* EmptySavedState.swift in Sources */,
+				F4DF0DC82F2DEC4600961C4A /* SavedJobsView.swift in Sources */,
+				F40D625A2F28E065004651FB /* JobListView.swift in Sources */,
+				F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */,
+				F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */,
+				F47760122F3A250700FFE828 /* ShareSheet.swift in Sources */,
+				F4DF0DD22F2E2ABB00961C4A /* SkeletonJobCard.swift in Sources */,
+				F4DF0DCF2F2E1F7D00961C4A /* ErrorStateView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D62302F28DCA8004651FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F40D623A2F28DCA8004651FB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F40D62362F28DCA8004651FB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F40D62262F28DCA7004651FB /* GradHire */;
+			targetProxy = F40D62352F28DCA8004651FB /* PBXContainerItemProxy */;
+		};
+		F40D62402F28DCA8004651FB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F40D62262F28DCA7004651FB /* GradHire */;
+			targetProxy = F40D623F2F28DCA8004651FB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F40D62462F28DCA8004651FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F40D62472F28DCA8004651FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F40D62492F28DCA8004651FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GradHire/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHire;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F40D624A2F28DCA8004651FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GradHire/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHire;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F40D624C2F28DCA8004651FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHireTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GradHire.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GradHire";
+			};
+			name = Debug;
+		};
+		F40D624D2F28DCA8004651FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHireTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/GradHire.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/GradHire";
+			};
+			name = Release;
+		};
+		F40D624F2F28DCA8004651FB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHireUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GradHire;
+			};
+			name = Debug;
+		};
+		F40D62502F28DCA8004651FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9U3N995J6M;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.GradHireUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = GradHire;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F40D62222F28DCA7004651FB /* Build configuration list for PBXProject "GradHire" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40D62462F28DCA8004651FB /* Debug */,
+				F40D62472F28DCA8004651FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F40D62482F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHire" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40D62492F28DCA8004651FB /* Debug */,
+				F40D624A2F28DCA8004651FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F40D624B2F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHireTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40D624C2F28DCA8004651FB /* Debug */,
+				F40D624D2F28DCA8004651FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F40D624E2F28DCA8004651FB /* Build configuration list for PBXNativeTarget "GradHireUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40D624F2F28DCA8004651FB /* Debug */,
+				F40D62502F28DCA8004651FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F40D621F2F28DCA7004651FB /* Project object */;
+}

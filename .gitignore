@@ -1,0 +1,6 @@
+gradhire-backend/
+DerivedData/
+build/
+.DS_Store
+*.xcworkspace
+xcuserdata/
