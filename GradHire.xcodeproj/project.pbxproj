@@ -195,8 +195,8 @@
 		F4DF0DC12F2DDD5300961C4A /* Managers */ = {
 			isa = PBXGroup;
 			children = (
-				F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */,
 				F47760132F3A5D7800FFE828 /* ResumeManager.swift */,
+				F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";

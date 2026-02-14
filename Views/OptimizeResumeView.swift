@@ -1,9 +1,11 @@
+
 import SwiftUI
 
 struct OptimizeResumeView: View {
 
     let job: Job
     @EnvironmentObject var resumeManager: ResumeManager
+    @StateObject private var network = NetworkMonitor.shared
 
     @State private var result: ResumeOptimizationResponse?
     @State private var isLoading = false
@@ -39,13 +41,12 @@ struct OptimizeResumeView: View {
                         loadingSection
                     }
 
-                    if let result = result, showResults {
-                        resultsSection(result: result)
+                    if let errorMessage {
+                        errorSection(message: errorMessage)
                     }
 
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
+                    if let result = result, showResults {
+                        resultsSection(result: result)
                     }
 
                     Spacer(minLength: 40)
@@ -53,7 +54,11 @@ struct OptimizeResumeView: View {
                 .padding()
             }
         }
-        .onAppear { optimize() }
+        .onAppear {
+            if result == nil {
+                optimize()
+            }
+        }
         .sheet(isPresented: $showShareSheet) {
             if let url = downloadedFileURL {
                 ShareSheet(items: [url])
@@ -69,33 +74,62 @@ struct OptimizeResumeView: View {
 private extension OptimizeResumeView {
 
     func optimize() {
+
+        guard network.isConnected else {
+            errorMessage = "No internet connection"
+            return
+        }
+
+        guard let resumeText = resumeManager.resumeText,
+              !resumeText.isEmpty else {
+            errorMessage = "Resume not found"
+            return
+        }
+
         isLoading = true
         errorMessage = nil
+        showResults = false
+
+        // Timeout protection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+            if isLoading {
+                isLoading = false
+                errorMessage = "Optimization timed out — please retry"
+            }
+        }
 
         APIService.shared.optimizeResume(
-            resumeText: "Sample resume text",
+            resumeText: resumeText,
             jobTitle: job.title,
             jobDescription: job.description
         ) { result in
 
-            DispatchQueue.main.async {
-                isLoading = false
+            isLoading = false
 
-                switch result {
-                case .success(let data):
-                    self.result = data
-                    self.showResults = true
+            switch result {
+            case .success(let data):
 
-                case .failure(let error):
-                    self.errorMessage = error.localizedDescription
+                if data.improvedBullets.isEmpty &&
+                    data.missingSkills.isEmpty {
+                    errorMessage = "AI returned empty results"
+                    return
                 }
+
+                self.result = data
+                self.showResults = true
+
+            case .failure(let error):
+                errorMessage = error.localizedDescription
             }
         }
     }
 
-
-
     func downloadResume() {
+
+        guard network.isConnected else {
+            errorMessage = "No internet connection"
+            return
+        }
 
         guard let resumeURL = resumeManager.resumeURL else {
             errorMessage = "No resume uploaded"
@@ -201,6 +235,27 @@ private extension OptimizeResumeView {
         .cornerRadius(24)
     }
 
+    func errorSection(message: String) -> some View {
+        VStack(spacing: 12) {
+
+            Text(message)
+                .foregroundColor(.red)
+                .multilineTextAlignment(.center)
+
+            Button("Retry Optimization") {
+                optimize()
+            }
+            .font(.headline)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 10)
+            .background(Color.blue.opacity(0.15))
+            .cornerRadius(16)
+        }
+        .padding(22)
+        .background(.ultraThinMaterial)
+        .cornerRadius(24)
+    }
+
     func resultsSection(result: ResumeOptimizationResponse) -> some View {
         VStack(spacing: 20) {
 
@@ -214,7 +269,8 @@ private extension OptimizeResumeView {
             )
 
             ImprovedBulletsSection(
-                bullets: result.improvedBullets
+                //bullets: result.improvedBullets
+                bullets: Array(result.improvedBullets.prefix(5))
             )
 
             PremiumSection(
@@ -260,6 +316,7 @@ private extension OptimizeResumeView {
             .cornerRadius(22)
             .shadow(radius: 8)
         }
+        .disabled(isDownloading || isLoading)
     }
 
     var applyButton: some View {
@@ -268,8 +325,10 @@ private extension OptimizeResumeView {
                 Link(destination: url) {
                     HStack {
                         Spacer()
-                        Label("Apply Now",
-                              systemImage: "arrow.up.right.square.fill")
+                        Label(
+                            "Apply Now",
+                            systemImage: "arrow.up.right.square.fill"
+                        )
                         Spacer()
                     }
                     .padding()
@@ -408,8 +467,10 @@ where Data.Element: Hashable {
     let items: Data
     let content: (Data.Element) -> Content
 
-    init(items: Data,
-         @ViewBuilder content: @escaping (Data.Element) -> Content) {
+    init(
+        items: Data,
+        @ViewBuilder content: @escaping (Data.Element) -> Content
+    ) {
         self.items = items
         self.content = content
     }
@@ -425,4 +486,6 @@ where Data.Element: Hashable {
         }
     }
 }
+
+
 

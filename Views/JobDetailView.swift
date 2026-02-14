@@ -1,56 +1,63 @@
 import SwiftUI
 
 struct JobDetailView: View {
+
     let job: Job
-  
+
     @State private var showFullDescription = false
-    
+    @State private var showSafari = false
 
-    // MARK: - Smart Description Parsing (UI-only)
-    var descriptionPoints: [String] {
-        // Normalize line breaks
-        let rawLines = job.description
-            .replacingOccurrences(of: "\r", with: "\n")
-            .components(separatedBy: "\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+    // MARK: - Clean paragraph description
 
-        // ✅ If backend already sends bullet-like lines, use them
-        if rawLines.count >= 3 {
-            return rawLines
-        }
-
-        // ✅ Fallback: chunk long paragraph into readable bullets
-        let words = job.description.split(separator: " ")
-        var chunks: [String] = []
-        var current: [Substring] = []
-
-        for word in words {
-            current.append(word)
-
-            if current.joined(separator: " ").count >= 90 {
-                chunks.append(current.joined(separator: " "))
-                current.removeAll()
-            }
-        }
-
-        if !current.isEmpty {
-            chunks.append(current.joined(separator: " "))
-        }
-
-        return chunks
+    var cleanedDescription: String {
+        job.description
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    var visiblePoints: [String] {
-        showFullDescription
-            ? descriptionPoints
-            : Array(descriptionPoints.prefix(3))
+    var shortDescription: String {
+        if cleanedDescription.count <= 350 {
+            return cleanedDescription
+        }
+
+        let index = cleanedDescription.index(
+            cleanedDescription.startIndex,
+            offsetBy: 350
+        )
+
+        return String(cleanedDescription[..<index]) + "..."
+    }
+
+    var displayDescription: String {
+        showFullDescription ? cleanedDescription : shortDescription
+    }
+
+    // MARK: - Skills extraction (stable order)
+
+    var skills: [String] {
+
+        let techKeywords = [
+            "AWS","Azure","Backend","Cloud","CSS","Django",
+            "Docker","Frontend","Git","GraphQL","HTML",
+            "Java","JavaScript","Kotlin","Kubernetes",
+            "MongoDB","Node.js","Python","React",
+            "REST","SQL","Swift","TypeScript","React.js","Next.js"
+        ]
+
+        let lowerDesc = job.description.lowercased()
+
+        return techKeywords
+            .filter { lowerDesc.contains($0.lowercased()) }
+            .sorted()
+            .prefix(8)
+            .map { $0 }
     }
 
     var body: some View {
+
         ZStack {
 
-            // MARK: - Premium Background Glow
             LinearGradient(
                 colors: [
                     Color.blue.opacity(0.18),
@@ -64,10 +71,13 @@ struct JobDetailView: View {
             .ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
+
                 VStack(spacing: 24) {
 
-                    // MARK: - Header Card
+                    // MARK: HEADER
+
                     VStack(spacing: 18) {
+
                         HStack(spacing: 14) {
 
                             Image(systemName: "building.2.fill")
@@ -80,6 +90,7 @@ struct JobDetailView: View {
                                 )
 
                             VStack(alignment: .leading, spacing: 6) {
+
                                 Text(job.title)
                                     .font(.title3.bold())
 
@@ -118,9 +129,12 @@ struct JobDetailView: View {
                             .stroke(Color.white.opacity(0.35))
                     )
 
-                    // MARK: - Key Skills (unchanged)
+                    // MARK: SKILLS
+
                     if !skills.isEmpty {
+
                         VStack(alignment: .leading, spacing: 14) {
+
                             Label("Key Skills", systemImage: "star.fill")
                                 .font(.headline)
 
@@ -128,6 +142,7 @@ struct JobDetailView: View {
                                 columns: [GridItem(.adaptive(minimum: 90))],
                                 spacing: 12
                             ) {
+
                                 ForEach(skills, id: \.self) { skill in
                                     Text(skill)
                                         .font(.caption.weight(.medium))
@@ -148,29 +163,19 @@ struct JobDetailView: View {
                         )
                     }
 
-                    // MARK: - What You'll Be Doing (Improved)
+                    // MARK: DESCRIPTION (Paragraph mode)
+
                     VStack(alignment: .leading, spacing: 16) {
 
-                        Label("What You’ll Be Doing", systemImage: "doc.text.fill")
+                        Label("Job Description", systemImage: "doc.text.fill")
                             .font(.headline)
 
-                        VStack(alignment: .leading, spacing: 14) {
-                            ForEach(visiblePoints.indices, id: \.self) { index in
-                                HStack(alignment: .top, spacing: 10) {
-                                    Circle()
-                                        .fill(Color.blue)
-                                        .frame(width: 6, height: 6)
-                                        .padding(.top, 6)
+                        Text(displayDescription)
+                            .foregroundColor(.secondary)
+                            .animation(.easeInOut, value: showFullDescription)
 
-                                    Text(visiblePoints[index])
-                                        .font(.body)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
+                        if cleanedDescription.count > 350 {
 
-                        // MARK: - Read More / Show Less
-                        if descriptionPoints.count > 3 {
                             Button {
                                 withAnimation(.easeInOut) {
                                     showFullDescription.toggle()
@@ -193,26 +198,51 @@ struct JobDetailView: View {
                             .stroke(Color.white.opacity(0.35))
                     )
 
-                    // MARK: - CTA Button
-                    NavigationLink(destination: OptimizeResumeView(job: job)
-                    ) {
-                        HStack {
-                            Spacer()
-                            Label("Optimize Resume for this Job", systemImage: "sparkles")
+                    // MARK: APPLY BUTTON (NEW)
+
+                    if let url = URL(string: job.applyURL),
+                       !job.applyURL.isEmpty {
+
+                        Button {
+                            showSafari = true
+                        } label: {
+
+                            Label("Apply / View Posting", systemImage: "arrow.up.right.square")
                                 .font(.headline)
-                            Spacer()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(
+                                    LinearGradient(
+                                        colors: [.green, .blue],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .foregroundColor(.white)
+                                .cornerRadius(22)
                         }
-                        .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [.blue, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                        .sheet(isPresented: $showSafari) {
+                            SafariView(url: url)
+                        }
+                    }
+
+                    // MARK: OPTIMIZE BUTTON
+
+                    NavigationLink(destination: OptimizeResumeView(job: job)) {
+
+                        Label("Optimize Resume for this Job", systemImage: "sparkles")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [.blue, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(22)
-                        .shadow(color: .blue.opacity(0.4), radius: 14, y: 8)
+                            .foregroundColor(.white)
+                            .cornerRadius(22)
                     }
 
                     Spacer(minLength: 40)
@@ -222,39 +252,6 @@ struct JobDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
     }
-
-    // MARK: - Skills Extractor (unchanged)
-    var skills: [String] {
-        let keywords = [
-            "Swift","React","Python","Java",
-            "AWS","Docker","APIs","iOS",
-            "Frontend","Backend","Cloud"
-        ]
-
-        return keywords.filter {
-            job.description.localizedCaseInsensitiveContains($0)
-        }
-    }
 }
 
-#Preview {
-    NavigationStack {
-        JobDetailView(
-            job: Job(
-                id: UUID(),
-                title: "iOS Developer",
-                company: "IntraEdge",
-                location: "Hyderabad, Telangana",
-                description: """
-                We are seeking an experienced iOS Developer to build high-quality mobile applications.
-                You will collaborate with designers and backend engineers to deliver scalable solutions.
-                Strong experience with Swift, iOS frameworks, and performance optimization is required.
-                Familiarity with REST APIs, CI/CD pipelines, and Agile development practices is a plus.
-                """,
-                matchScore: 94,
-                applyURL: ""
-            )
-        )
-    }
-}
 
