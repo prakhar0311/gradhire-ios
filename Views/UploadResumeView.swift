@@ -16,6 +16,11 @@ struct UploadResumeView: View {
     @State private var showRetry = false
     @State private var selectedCountry = "in"
     @State private var animate = false
+    @State private var showSlowServerHint = false
+    @State private var showAIConsent = false
+
+    // Asked once, before the first resume is sent to GradHire's server and OpenAI
+    @AppStorage("ai_data_consent_v1") private var hasAIConsent = false
 
     struct CountryOption: Identifiable {
         let id = UUID()
@@ -117,6 +122,7 @@ struct UploadResumeView: View {
 
                         countryPicker
                         uploadButton
+                        dataUseNote
                         statusSection
                         browseAllJobsButton
                         trustBadges
@@ -154,6 +160,21 @@ struct UploadResumeView: View {
                 allowsMultipleSelection: false,
                 onCompletion: handleFileImport
             )
+            .sheet(isPresented: $showAIConsent) {
+                AIConsentSheet(
+                    onAgree: {
+                        hasAIConsent = true
+                        showAIConsent = false
+                        // Let the sheet finish dismissing before presenting the picker
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            showPicker = true
+                        }
+                    },
+                    onCancel: { showAIConsent = false }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -198,7 +219,11 @@ struct UploadResumeView: View {
         Button {
             errorMessage = nil
             showRetry = false
-            showPicker = true
+            if hasAIConsent {
+                showPicker = true
+            } else {
+                showAIConsent = true
+            }
         } label: {
             HStack(spacing: 10) {
                 Spacer()
@@ -266,6 +291,18 @@ struct UploadResumeView: View {
         .disabled(isUploading)
     }
 
+    // MARK: - Data Use Note
+
+    private var dataUseNote: some View {
+        Text("Your resume is sent to our server and OpenAI to match jobs and suggest improvements.")
+            .font(.system(size: 11))
+            .foregroundColor(.white.opacity(0.3))
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 8)
+    }
+
     // MARK: - Status Section
 
     private var statusSection: some View {
@@ -274,9 +311,20 @@ struct UploadResumeView: View {
                 HStack(spacing: 10) {
                     ProgressView()
                         .tint(Color(red: 0.55, green: 0.43, blue: 1.0))
-                    Text("Analyzing resume...")
-                        .font(.system(size: 13))
-                        .foregroundColor(.white.opacity(0.45))
+                    Text(
+                        showSlowServerHint
+                        ? "Waking up the server — this can take up to a minute the first time."
+                        : "Analyzing resume..."
+                    )
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.45))
+                    .multilineTextAlignment(.leading)
+                }
+                // A free-tier backend can take ~a minute to wake from idle
+                .task {
+                    showSlowServerHint = false
+                    try? await Task.sleep(nanoseconds: 8_000_000_000)
+                    if !Task.isCancelled { showSlowServerHint = true }
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity)
@@ -363,7 +411,7 @@ struct UploadResumeView: View {
             ForEach(
                 [
                     ("lock.shield.fill", "Secure Upload"),
-                    ("eye.slash.fill",   "No data stored"),
+                    ("eye.slash.fill",   "Not stored by us"),
                     ("doc.fill",         "PDF only")
                 ],
                 id: \.0
@@ -506,6 +554,107 @@ struct UploadResumeView: View {
                 return .white.opacity(0.2)
             }
             return isSelected ? .white : .white.opacity(0.45)
+        }
+    }
+}
+
+// MARK: - AI Consent Sheet
+
+private struct AIConsentSheet: View {
+
+    let onAgree: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.06, green: 0.06, blue: 0.09)
+                .ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 16) {
+
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.39, green: 0.22, blue: 1.0),
+                                        Color(red: 0.0, green: 0.83, blue: 0.67)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+
+                    Text("Before you upload")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    consentPoint(
+                        icon: "server.rack",
+                        text: "Your resume is sent to GradHire's server to read it and find matching jobs."
+                    )
+                    consentPoint(
+                        icon: "brain",
+                        text: "When you optimize your resume for a job, its contents and the job description are sent to OpenAI to generate suggestions."
+                    )
+                    consentPoint(
+                        icon: "trash",
+                        text: "GradHire doesn't keep your resume on its servers after processing it."
+                    )
+                }
+
+                Spacer(minLength: 0)
+
+                Button(action: onAgree) {
+                    Text("Agree & Continue")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.39, green: 0.22, blue: 1.0),
+                                    Color(red: 0.0, green: 0.83, blue: 0.67)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
+                }
+
+                Button(action: onCancel) {
+                    Text("Cancel")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(24)
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func consentPoint(icon: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                .frame(width: 20)
+                .padding(.top, 1)
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.65))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

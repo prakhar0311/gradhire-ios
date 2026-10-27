@@ -53,11 +53,12 @@ final class JobAPIService {
     static let shared = JobAPIService()
     private init() {}
 
-    // 20s per request; 45s total leaves room for a backend cold start.
+    // 60s per request / 90s total: the free-tier backend can take about a
+    // minute to wake up after being idle.
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 20
-        config.timeoutIntervalForResource = 45
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 90
         config.waitsForConnectivity = false
         return URLSession(configuration: config)
     }()

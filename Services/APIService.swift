@@ -7,12 +7,25 @@ final class APIService {
     
     // MARK: - Shared Session (Production Config)
     
+    // 60s per request / 90s total: the free-tier backend can take about a
+    // minute to wake up after being idle.
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 45
-        config.timeoutIntervalForResource = 45
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 90
         return URLSession(configuration: config)
     }()
+
+    // MARK: - Server Warm-up
+
+    /// Fire-and-forget request so a sleeping backend starts waking up while the
+    /// user is still picking a file. Failures are ignored.
+    func warmUpServer() async {
+        guard let url = URL(string: APIConstants.baseURL) else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 90
+        _ = try? await session.data(for: request)
+    }
     
     // MARK: - Optimize Resume
     
@@ -79,9 +92,12 @@ final class APIService {
                 // ✅ Handle server errors properly
                 guard (200...299).contains(http.statusCode) else {
                     
-                    let serverMessage =
-                    String(data: data, encoding: .utf8)
-                    ?? "Server error \(http.statusCode)"
+                    // Show FastAPI's "detail" text (e.g. rate limits), never raw JSON
+                    var serverMessage = "Optimization failed — please try again."
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let detail = json["detail"] as? String {
+                        serverMessage = detail
+                    }
                     
                     completion(.failure(NSError(
                         domain: "Server",
@@ -196,7 +212,7 @@ final class APIService {
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 20
+        request.timeoutInterval = 60 // allow for a backend cold start
         
         let boundary = UUID().uuidString
         request.setValue(

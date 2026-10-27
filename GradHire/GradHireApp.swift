@@ -23,6 +23,7 @@ struct GradHireApp: App {
             .environmentObject(resumeManager) // ✅ ADD
             .environmentObject(matchedJobs)
             .environmentObject(allJobs)
+            .task { await APIService.shared.warmUpServer() }
         }
     }
 }
