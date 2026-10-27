@@ -179,18 +179,13 @@ struct JobListView: View {
                 let visibleJobs = matchedJobs.visibleJobs
 
                 JobsFilterBar(
-                    dateFilter: $matchedJobs.dateFilter,
                     sort: $matchedJobs.sort,
                     resultCount: visibleJobs.count
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
 
-                if visibleJobs.isEmpty {
-                    filteredEmptyView(for: matchedJobs.dateFilter, clear: matchedJobs.clearDateFilter)
-                } else {
-                    jobRows(visibleJobs)
-                }
+                jobRows(visibleJobs)
             }
         }
     }
@@ -199,16 +194,6 @@ struct JobListView: View {
 
     @ViewBuilder
     private var allJobsContent: some View {
-        JobsFilterBar(
-            dateFilter: Binding(
-                get: { allJobs.dateFilter },
-                set: { allJobs.setDateFilter($0) }
-            ),
-            resultCount: allJobsCount
-        )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 12)
-
         switch allJobs.state {
         case .idle, .loading:
             skeletonList
@@ -221,17 +206,17 @@ struct JobListView: View {
             .padding(.horizontal, 16)
 
         case .empty:
-            if allJobs.dateFilter != .anyTime {
-                filteredEmptyView(for: allJobs.dateFilter, clear: { allJobs.setDateFilter(.anyTime) })
-            } else {
-                DarkEmptyView(
-                    title: "No new grad jobs right now",
-                    message: "New openings are posted daily. Pull down to refresh or check back soon."
-                )
-                .padding(.horizontal, 16)
-            }
+            DarkEmptyView(
+                title: "No new grad jobs right now",
+                message: "New openings are posted daily. Pull down to refresh or check back soon."
+            )
+            .padding(.horizontal, 16)
 
         case .loaded:
+            JobsFilterBar(resultCount: allJobs.total ?? allJobs.jobs.count)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+
             if let refreshError = allJobs.refreshError {
                 DarkInlineBanner(message: refreshError, onDismiss: allJobs.dismissRefreshError)
                     .padding(.horizontal, 16)
@@ -271,29 +256,7 @@ struct JobListView: View {
         }
     }
 
-    private var allJobsCount: Int? {
-        switch allJobs.state {
-        case .loaded: return allJobs.total ?? allJobs.jobs.count
-        case .empty:  return 0
-        default:      return nil
-        }
-    }
-
     // MARK: - Shared Rows
-
-    private func filteredEmptyView(for filter: JobDateFilter, clear: @escaping () -> Void) -> some View {
-        DarkEmptyView(
-            icon: "calendar.badge.exclamationmark",
-            title: filter.emptyTitle,
-            message: "Try a wider date range to see more jobs.",
-            actionTitle: "Clear filter",
-            action: {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                clear()
-            }
-        )
-        .padding(.horizontal, 16)
-    }
 
     private var skeletonList: some View {
         ForEach(0..<5, id: \.self) { _ in

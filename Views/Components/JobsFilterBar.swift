@@ -1,13 +1,11 @@
 import SwiftUI
-import UIKit
 
 // MARK: - Jobs Filter Bar
 
-/// Date filter (and optional sort) chips plus a result count, shared by
-/// the "For You" and "All Jobs" tabs.
+/// Result count plus an optional sort menu, shared by the "For You" and
+/// "All Jobs" tabs.
 struct JobsFilterBar: View {
 
-    @Binding var dateFilter: JobDateFilter
     var sort: Binding<JobSort>? = nil  // nil hides the sort menu (All Jobs has no scores)
     let resultCount: Int?
 
@@ -23,37 +21,6 @@ struct JobsFilterBar: View {
             }
 
             Spacer(minLength: 4)
-
-            Menu {
-                Picker("Date posted", selection: $dateFilter) {
-                    ForEach(JobDateFilter.allCases) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-            } label: {
-                FilterChip(
-                    icon: "clock",
-                    title: dateFilter.title,
-                    isActive: dateFilter != .anyTime
-                )
-            }
-            .accessibilityLabel("Date posted: \(dateFilter.title)")
-
-            if dateFilter != .anyTime {
-                Button {
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    dateFilter = .anyTime
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(width: 28, height: 28)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.09), lineWidth: 0.5))
-                }
-                .accessibilityLabel("Clear date filter")
-            }
 
             if let sort {
                 Menu {
@@ -72,6 +39,7 @@ struct JobsFilterBar: View {
                 .accessibilityLabel("Sort: \(sort.wrappedValue.title)")
             }
         }
+        .frame(minHeight: 30)
     }
 }
 

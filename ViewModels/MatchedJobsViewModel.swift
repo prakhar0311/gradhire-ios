@@ -19,7 +19,6 @@ final class MatchedJobsViewModel: ObservableObject {
     @Published private(set) var state: JobsLoadState = .idle
 
     // Lives with the app-level view model, so it survives job detail and back
-    @Published var dateFilter: JobDateFilter = .anyTime
     @Published var sort: JobSort = .bestMatch
 
     private var resumeURL: URL?
@@ -28,16 +27,9 @@ final class MatchedJobsViewModel: ObservableObject {
 
     var hasResume: Bool { resumeURL != nil }
 
-    /// The matched jobs after the date filter and sort are applied.
+    /// The matched jobs in the selected sort order.
     var visibleJobs: [Job] {
-        let now = Date()
-        return jobs
-            .filter { dateFilter.includes($0, now: now) }
-            .sorted(by: sort)
-    }
-
-    func clearDateFilter() {
-        dateFilter = .anyTime
+        jobs.sorted(by: sort)
     }
 
     /// Starts matching for a newly uploaded resume, replacing any previous results.

@@ -113,16 +113,10 @@ final class JobAPIService {
 
     func fetchNewGradJobs(
         country: String = "in",
-        page: Int,
-        maxDays: Int? = nil
+        page: Int
     ) async throws -> NewGradJobsPage {
 
-        var urlString = "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)"
-        if let maxDays {
-            urlString += "&max_days=\(maxDays)"
-        }
-
-        guard let url = URL(string: urlString) else {
+        guard let url = URL(string: "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)") else {
             throw JobAPIError.invalidResponse
         }
 
