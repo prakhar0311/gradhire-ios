@@ -10,6 +10,31 @@ struct Job: Identifiable, Codable, Hashable {
     let applyURL: String
     let postedAt: Date?
     let contractTime: String? // Adzuna: "full_time", "part_time" or nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, company, location, description
+        case matchScore, applyURL, postedAt, contractTime
+    }
+}
+
+// MARK: - Lenient Decoding
+
+extension Job {
+
+    // A missing or malformed date must not fail the whole list (or saved
+    // bookmarks); the job just shows up as undated.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        company = try container.decode(String.self, forKey: .company)
+        location = try container.decode(String.self, forKey: .location)
+        description = try container.decode(String.self, forKey: .description)
+        matchScore = try container.decodeIfPresent(Int.self, forKey: .matchScore)
+        applyURL = try container.decode(String.self, forKey: .applyURL)
+        postedAt = try? container.decodeIfPresent(Date.self, forKey: .postedAt)
+        contractTime = try? container.decodeIfPresent(String.self, forKey: .contractTime)
+    }
 }
 
 // MARK: - Display Helpers

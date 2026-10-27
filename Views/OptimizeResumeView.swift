@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 extension URL: @retroactive Identifiable {
     public var id: String { absoluteString }
@@ -8,15 +9,18 @@ struct OptimizeResumeView: View {
 
     let job: Job
     @EnvironmentObject var resumeManager: ResumeManager
+    @EnvironmentObject var matchedJobs: MatchedJobsViewModel
     @StateObject private var network = NetworkMonitor.shared
+    @StateObject private var viewModel: OptimizeResumeViewModel
 
-    @State private var result: ResumeOptimizationResponse?
-    @State private var isLoading = false
     @State private var isDownloading = false
-    @State private var errorMessage: String?
     @State private var downloadErrorMessage: String?
-    @State private var showResults = false
     @State private var downloadedFileURL: URL?
+
+    init(job: Job) {
+        self.job = job
+        _viewModel = StateObject(wrappedValue: OptimizeResumeViewModel(job: job))
+    }
 
     var body: some View {
         ZStack {
@@ -57,19 +61,19 @@ struct OptimizeResumeView: View {
                     heroSection
                     targetRoleCard
 
-                    if isLoading && result == nil {
+                    if viewModel.phase == .optimizing {
                         loadingCard
                     }
 
-                    if let errorMessage, result == nil {
-                        errorCard(message: errorMessage)
+                    if case .failed(let message) = viewModel.phase {
+                        errorCard(message: message)
                     }
 
-                    if let result = result, showResults {
-                        if job.matchScore != nil { readinessCard }
-                        missingSkillsCard(result: result)
-                        bulletsCard(result: result)
-                        keywordsCard(result: result)
+                    if let result = viewModel.result, viewModel.phase == .done {
+                        readinessCard(result: result)
+                        missingSkillsCard(result: result.response)
+                        bulletsCard(result: result.response)
+                        keywordsCard(result: result.response)
                         actionButtons
                     }
 
@@ -80,7 +84,13 @@ struct OptimizeResumeView: View {
             }
         }
         .onAppear {
-            if result == nil { optimize() }
+            viewModel.onAppear(
+                resumeText: resumeManager.resumeText,
+                isConnected: network.isConnected
+            )
+        }
+        .onDisappear {
+            viewModel.onDisappear()
         }
         .sheet(item: $downloadedFileURL) { url in
             ShareSheet(items: [url])
@@ -166,55 +176,112 @@ private extension OptimizeResumeView {
         }
     }
 
-    var readinessCard: some View {
-        glassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Label("Resume Readiness", systemImage: "checkmark.seal.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(1.2)
-                            .foregroundColor(.white.opacity(0.35))
-                            .textCase(.uppercase)
+    func readinessCard(result: OptimizationResult) -> some View {
+        let display = scoreDisplay(for: result)
 
-                        Text("\(job.matchScore ?? 0)%")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(scoreColor)
-                    }
+        return glassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("Resume Readiness", systemImage: "checkmark.seal.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundColor(.white.opacity(0.35))
+                        .textCase(.uppercase)
 
                     Spacer()
 
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Match score")
-                            .font(.system(size: 11))
-                            .foregroundColor(.white.opacity(0.3))
-                        Text(scoreLabel)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(scoreColor)
-                    }
-                    .padding(.top, 4)
+                    versionToggle
                 }
 
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 99)
-                            .fill(Color.white.opacity(0.08))
-                            .frame(height: 5)
+                HStack(spacing: 18) {
+                    if let ringScore = display.ringScore {
+                        DarkMatchRing(
+                            score: ringScore,
+                            size: 84,
+                            lineWidth: 7,
+                            isLoading: display.isLoading
+                        )
+                    } else {
+                        // No trustworthy number to show
+                        ZStack {
+                            Circle()
+                                .stroke(Color.white.opacity(0.07), lineWidth: 7)
+                            Text("—")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                        .frame(width: 84, height: 84)
+                    }
 
-                        RoundedRectangle(cornerRadius: 99)
-                            .fill(
-                                LinearGradient(
-                                    colors: [scoreColor, Color(red: 0.39, green: 0.22, blue: 1.0)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                    VStack(alignment: .leading, spacing: 6) {
+                        display.headline
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .contentTransition(.numericText())
+
+                        Text(display.caption)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.4))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if result.score == .failed {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                                Text("Couldn't update score")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.5))
+                                Button("Retry") {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    viewModel.retryScore()
+                                }
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                            }
+                            .padding(.top, 2)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .animation(.easeInOut(duration: 0.35), value: result.score)
+            .animation(.easeInOut(duration: 0.35), value: viewModel.selectedVersion)
+        }
+    }
+
+    var versionToggle: some View {
+        HStack(spacing: 2) {
+            ForEach(ResumeVersion.allCases) { version in
+                Button {
+                    viewModel.selectedVersion = version
+                } label: {
+                    Text(version.rawValue)
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .foregroundColor(viewModel.selectedVersion == version ? .white : .white.opacity(0.45))
+                        .background {
+                            if viewModel.selectedVersion == version {
+                                Capsule().fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.6),
+                                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.35)
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
                                 )
-                            )
-                            .frame(width: geo.size.width * CGFloat(job.matchScore ?? 0) / 100, height: 5)
-                    }
+                            }
+                        }
                 }
-                .frame(height: 5)
+                .buttonStyle(.plain)
             }
         }
+        .padding(3)
+        .background(Color.white.opacity(0.05))
+        .overlay(Capsule().stroke(Color.white.opacity(0.09), lineWidth: 0.5))
+        .clipShape(Capsule())
     }
 
     func missingSkillsCard(result: ResumeOptimizationResponse) -> some View {
@@ -308,7 +375,7 @@ private extension OptimizeResumeView {
                 .foregroundColor(.white)
                 .cornerRadius(16)
             }
-            .disabled(isDownloading || isLoading)
+            .disabled(isDownloading || viewModel.phase == .optimizing)
 
             if let downloadErrorMessage {
                 Text(downloadErrorMessage)
@@ -369,7 +436,10 @@ private extension OptimizeResumeView {
                     .foregroundColor(.white.opacity(0.5))
                     .multilineTextAlignment(.center)
                 Button("Retry Optimization") {
-                    optimize()
+                    viewModel.optimize(
+                        resumeText: resumeManager.resumeText,
+                        isConnected: network.isConnected
+                    )
                 }
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 22)
@@ -410,19 +480,105 @@ private extension OptimizeResumeView {
             .textCase(.uppercase)
     }
 
-    var scoreColor: Color {
-        switch job.matchScore {
-        case (85...100)?: return Color(red: 0.0, green: 0.83, blue: 0.67)
-        case (65..<85)?:  return Color(red: 0.98, green: 0.75, blue: 0.18)
-        default:          return Color(red: 1.0, green: 0.48, blue: 0.45)
+    func scoreColor(_ score: Int) -> Color {
+        switch score {
+        case 85...100: return Color(red: 0.0, green: 0.83, blue: 0.67)
+        case 65..<85:  return Color(red: 0.98, green: 0.75, blue: 0.18)
+        default:       return Color(red: 1.0, green: 0.48, blue: 0.45)
         }
     }
 
-    var scoreLabel: String {
-        switch job.matchScore {
-        case (85...100)?: return "Strong match"
-        case (65..<85)?:  return "Good match"
-        default:          return "Low — optimize first"
+    func scoreLabel(_ score: Int) -> String {
+        switch score {
+        case 85...100: return "Strong match"
+        case 65..<85:  return "Good match"
+        default:       return "Low match"
+        }
+    }
+
+    /// The original resume's score for this job, only if it was computed for the
+    /// resume currently loaded (a job bookmarked under an older resume doesn't count).
+    var currentResumeOriginalScore: Int? {
+        matchedJobs.jobs.first { $0.id == job.id }?.matchScore
+    }
+
+    struct ScoreDisplay {
+        let ringScore: Int?
+        let isLoading: Bool
+        let headline: Text
+        let caption: String
+    }
+
+    func scoreDisplay(for result: OptimizationResult) -> ScoreDisplay {
+        let neutral = Color.white.opacity(0.85)
+
+        switch (result.score, viewModel.selectedVersion) {
+
+        case let (.loaded(before, after), version):
+            let delta = after - before
+            let deltaText: Text
+            // Smaller than the "62 → 81" part so the line fits on one row
+            let deltaFont = Font.system(size: 15, weight: .semibold, design: .rounded)
+            if delta > 0 {
+                deltaText = Text(" (+\(delta))").font(deltaFont).foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+            } else if delta < 0 {
+                deltaText = Text(" (\(delta))").font(deltaFont).foregroundColor(Color(red: 0.98, green: 0.75, blue: 0.18))
+            } else {
+                deltaText = Text(" (no change)").font(deltaFont).foregroundColor(.white.opacity(0.4))
+            }
+
+            let shown = version == .original ? before : after
+            let caption: String
+            switch (version, delta) {
+            case (.original, _):
+                caption = "Original resume · \(scoreLabel(before))"
+            case (.optimized, let d) where d > 0:
+                caption = "Optimized resume · \(scoreLabel(after))"
+            case (.optimized, 0):
+                caption = "The optimized resume scores the same for this job."
+            default:
+                caption = "The optimized resume scores lower for this job."
+            }
+
+            return ScoreDisplay(
+                ringScore: shown,
+                isLoading: false,
+                headline: Text("\(Text("\(before) → \(after)").foregroundColor(neutral))\(deltaText)"),
+                caption: caption
+            )
+
+        case (.loading, .original) where currentResumeOriginalScore != nil:
+            let original = currentResumeOriginalScore ?? 0
+            return ScoreDisplay(
+                ringScore: original,
+                isLoading: false,
+                headline: Text("\(original)%").foregroundColor(scoreColor(original)),
+                caption: "Original resume · \(scoreLabel(original))"
+            )
+
+        case (.loading, _):
+            return ScoreDisplay(
+                ringScore: currentResumeOriginalScore ?? 0,
+                isLoading: true,
+                headline: Text("Scoring…").foregroundColor(neutral),
+                caption: "Re-scoring with the same matching logic as your job matches."
+            )
+
+        case (.failed, _):
+            if let original = currentResumeOriginalScore {
+                return ScoreDisplay(
+                    ringScore: original,
+                    isLoading: false,
+                    headline: Text("\(original)%").foregroundColor(scoreColor(original)),
+                    caption: "Original resume score"
+                )
+            }
+            return ScoreDisplay(
+                ringScore: nil,
+                isLoading: false,
+                headline: Text("—").foregroundColor(.white.opacity(0.4)),
+                caption: "Score unavailable"
+            )
         }
     }
 }
@@ -430,31 +586,6 @@ private extension OptimizeResumeView {
 // MARK: - API Logic
 
 private extension OptimizeResumeView {
-
-    func optimize() {
-        guard network.isConnected else { errorMessage = "No internet connection"; return }
-        guard let resumeText = resumeManager.resumeText, !resumeText.isEmpty else {
-            errorMessage = "Resume not found"; return
-        }
-        isLoading = true; errorMessage = nil; showResults = false; result = nil
-
-        APIService.shared.optimizeResume(
-            resumeText: resumeText,
-            jobTitle: job.title,
-            jobDescription: job.description
-        ) { apiResult in
-            self.isLoading = false
-            switch apiResult {
-            case .success(let data):
-                guard !data.improvedBullets.isEmpty || !data.missingSkills.isEmpty else {
-                    self.errorMessage = "AI returned empty results"; return
-                }
-                self.errorMessage = nil; self.result = data; self.showResults = true
-            case .failure(let error):
-                self.errorMessage = error.localizedDescription
-            }
-        }
-    }
 
     func downloadResume() {
         guard network.isConnected else { downloadErrorMessage = "No internet connection"; return }
@@ -465,7 +596,8 @@ private extension OptimizeResumeView {
 
         APIService.shared.downloadOptimizedResume(
             resumeURL: resumeURL,
-            jobDescription: job.description
+            jobDescription: job.description,
+            optimizedResumeJSON: viewModel.result?.response.optimizedResumeJSON
         ) { result in
             DispatchQueue.main.async {
                 self.isDownloading = false

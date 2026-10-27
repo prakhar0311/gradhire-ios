@@ -176,7 +176,21 @@ struct JobListView: View {
                 .padding(.horizontal, 16)
 
             case .loaded:
-                jobRows(matchedJobs.jobs)
+                let visibleJobs = matchedJobs.visibleJobs
+
+                JobsFilterBar(
+                    dateFilter: $matchedJobs.dateFilter,
+                    sort: $matchedJobs.sort,
+                    resultCount: visibleJobs.count
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+
+                if visibleJobs.isEmpty {
+                    filteredEmptyView(for: matchedJobs.dateFilter, clear: matchedJobs.clearDateFilter)
+                } else {
+                    jobRows(visibleJobs)
+                }
             }
         }
     }
@@ -185,6 +199,16 @@ struct JobListView: View {
 
     @ViewBuilder
     private var allJobsContent: some View {
+        JobsFilterBar(
+            dateFilter: Binding(
+                get: { allJobs.dateFilter },
+                set: { allJobs.setDateFilter($0) }
+            ),
+            resultCount: allJobsCount
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+
         switch allJobs.state {
         case .idle, .loading:
             skeletonList
@@ -197,11 +221,15 @@ struct JobListView: View {
             .padding(.horizontal, 16)
 
         case .empty:
-            DarkEmptyView(
-                title: "No new grad jobs right now",
-                message: "New openings are posted daily. Pull down to refresh or check back soon."
-            )
-            .padding(.horizontal, 16)
+            if allJobs.dateFilter != .anyTime {
+                filteredEmptyView(for: allJobs.dateFilter, clear: { allJobs.setDateFilter(.anyTime) })
+            } else {
+                DarkEmptyView(
+                    title: "No new grad jobs right now",
+                    message: "New openings are posted daily. Pull down to refresh or check back soon."
+                )
+                .padding(.horizontal, 16)
+            }
 
         case .loaded:
             if let refreshError = allJobs.refreshError {
@@ -243,7 +271,29 @@ struct JobListView: View {
         }
     }
 
+    private var allJobsCount: Int? {
+        switch allJobs.state {
+        case .loaded: return allJobs.total ?? allJobs.jobs.count
+        case .empty:  return 0
+        default:      return nil
+        }
+    }
+
     // MARK: - Shared Rows
+
+    private func filteredEmptyView(for filter: JobDateFilter, clear: @escaping () -> Void) -> some View {
+        DarkEmptyView(
+            icon: "calendar.badge.exclamationmark",
+            title: filter.emptyTitle,
+            message: "Try a wider date range to see more jobs.",
+            actionTitle: "Clear filter",
+            action: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                clear()
+            }
+        )
+        .padding(.horizontal, 16)
+    }
 
     private var skeletonList: some View {
         ForEach(0..<5, id: \.self) { _ in
@@ -254,12 +304,15 @@ struct JobListView: View {
     }
 
     private func jobRows(_ jobs: [Job]) -> some View {
-        ForEach(jobs) { job in
-            NavigationLink(destination: JobDetailView(job: job)) {
+        // Both tabs share one LazyVStack and a job has the same stable ID in
+        // both lists, so scope row identity by tab; otherwise the lazy stack
+        // can reuse a "For You" card (with its score) on the "All Jobs" tab.
+        ForEach(jobs.map { TabScopedJob(tab: selectedTab, job: $0) }) { item in
+            NavigationLink(destination: JobDetailView(job: item.job)) {
                 DarkJobCard(
-                    job: job,
-                    isSaved: bookmarks.isSaved(job),
-                    onBookmarkTap: { bookmarks.toggle(job) }
+                    job: item.job,
+                    isSaved: bookmarks.isSaved(item.job),
+                    onBookmarkTap: { bookmarks.toggle(item.job) }
                 )
             }
             .buttonStyle(.plain)
@@ -267,6 +320,13 @@ struct JobListView: View {
             .padding(.bottom, 12)
         }
     }
+}
+
+private struct TabScopedJob: Identifiable {
+    let tab: JobsTab
+    let job: Job
+
+    var id: String { "\(tab.rawValue)-\(job.id.uuidString)" }
 }
 
 // MARK: - Tab Picker
@@ -485,7 +545,12 @@ struct DarkTag: View {
 struct DarkMatchRing: View {
 
     let score: Int
+    var size: CGFloat = 42
+    var lineWidth: CGFloat = 4
+    var isLoading = false
+
     @State private var progress: CGFloat = 0
+    @State private var spin = false
 
     private var ringColors: [Color] {
         switch score {
@@ -507,28 +572,55 @@ struct DarkMatchRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.07), lineWidth: 4)
+                .stroke(Color.white.opacity(0.07), lineWidth: lineWidth)
 
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(
-                    LinearGradient(
-                        colors: ringColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
+            if isLoading {
+                // Spinner instead of a (possibly stale) number
+                Circle()
+                    .trim(from: 0, to: 0.28)
+                    .stroke(
+                        Color(red: 0.55, green: 0.43, blue: 1.0),
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(spin ? 270 : -90))
+                    .onAppear {
+                        spin = false
+                        withAnimation(.linear(duration: 0.9).repeatForever(autoreverses: false)) {
+                            spin = true
+                        }
+                    }
+            } else {
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        LinearGradient(
+                            colors: ringColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
 
-            Text("\(score)%")
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(.white)
+                Text("\(score)%")
+                    .font(.system(size: max(9, size * 0.22), weight: .bold))
+                    .foregroundColor(.white)
+                    .contentTransition(.numericText(value: Double(score)))
+                    .animation(.easeInOut(duration: 1.0), value: score)
+            }
         }
-        .frame(width: 42, height: 42)
+        .frame(width: size, height: size)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(isLoading ? "Calculating score" : "Match score \(score) percent")
         .onAppear {
             withAnimation(.easeOut(duration: 1.0)) {
                 progress = CGFloat(score) / 100
+            }
+        }
+        // Animate from the previous value to the new one (not from zero)
+        .onChange(of: score) { _, newScore in
+            withAnimation(.easeInOut(duration: 1.0)) {
+                progress = CGFloat(newScore) / 100
             }
         }
     }

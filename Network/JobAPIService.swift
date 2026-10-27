@@ -43,6 +43,7 @@ struct NewGradJobsPage: Decodable {
     let jobs: [Job]
     let page: Int
     let hasMore: Bool
+    let total: Int? // older backends don't send it
 }
 
 // MARK: - Service
@@ -112,10 +113,16 @@ final class JobAPIService {
 
     func fetchNewGradJobs(
         country: String = "in",
-        page: Int
+        page: Int,
+        maxDays: Int? = nil
     ) async throws -> NewGradJobsPage {
 
-        guard let url = URL(string: "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)") else {
+        var urlString = "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)"
+        if let maxDays {
+            urlString += "&max_days=\(maxDays)"
+        }
+
+        guard let url = URL(string: urlString) else {
             throw JobAPIError.invalidResponse
         }
 

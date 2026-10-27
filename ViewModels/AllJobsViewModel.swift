@@ -11,6 +11,8 @@ final class AllJobsViewModel: ObservableObject {
     @Published private(set) var loadMoreError: String?
     @Published private(set) var refreshError: String?
     @Published private(set) var hasMore = false
+    @Published private(set) var total: Int?
+    @Published private(set) var dateFilter: JobDateFilter = .anyTime
 
     private var country = "in"
     private var nextPage = 1
@@ -45,6 +47,16 @@ final class AllJobsViewModel: ObservableObject {
         loadFirstPage()
     }
 
+    /// The feed is paginated on the server, so the filter is applied there
+    /// and the list restarts from page 1.
+    func setDateFilter(_ filter: JobDateFilter) {
+        guard filter != dateFilter else { return }
+        dateFilter = filter
+        jobs = []
+        total = nil
+        loadFirstPage()
+    }
+
     /// Pull to refresh: keeps the current list on screen while reloading page 1.
     func refresh() async {
         task?.cancel()
@@ -52,7 +64,11 @@ final class AllJobsViewModel: ObservableObject {
         refreshError = nil
 
         do {
-            let page = try await JobAPIService.shared.fetchNewGradJobs(country: country, page: 1)
+            let page = try await JobAPIService.shared.fetchNewGradJobs(
+                country: country,
+                page: 1,
+                maxDays: dateFilter.maxDays
+            )
             applyFirstPage(page)
         } catch is CancellationError {
             return
@@ -90,9 +106,14 @@ final class AllJobsViewModel: ObservableObject {
         refreshError = nil
 
         let country = country
+        let maxDays = dateFilter.maxDays
         task = Task {
             do {
-                let page = try await JobAPIService.shared.fetchNewGradJobs(country: country, page: 1)
+                let page = try await JobAPIService.shared.fetchNewGradJobs(
+                    country: country,
+                    page: 1,
+                    maxDays: maxDays
+                )
                 guard !Task.isCancelled else { return }
                 applyFirstPage(page)
             } catch {
@@ -107,11 +128,16 @@ final class AllJobsViewModel: ObservableObject {
 
         let country = country
         let pageNumber = nextPage
+        let maxDays = dateFilter.maxDays
         task = Task {
             defer { if !Task.isCancelled { isLoadingMore = false } }
 
             do {
-                let page = try await JobAPIService.shared.fetchNewGradJobs(country: country, page: pageNumber)
+                let page = try await JobAPIService.shared.fetchNewGradJobs(
+                    country: country,
+                    page: pageNumber,
+                    maxDays: maxDays
+                )
                 guard !Task.isCancelled else { return }
 
                 // The backend list can shift between pages; skip anything already shown
@@ -129,6 +155,7 @@ final class AllJobsViewModel: ObservableObject {
     private func applyFirstPage(_ page: NewGradJobsPage) {
         jobs = page.jobs
         hasMore = page.hasMore
+        total = page.total
         nextPage = 2
         loadedAt = Date()
         loadMoreError = nil

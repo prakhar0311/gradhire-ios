@@ -1,0 +1,130 @@
+import SwiftUI
+import UIKit
+
+// MARK: - Jobs Filter Bar
+
+/// Date filter (and optional sort) chips plus a result count, shared by
+/// the "For You" and "All Jobs" tabs.
+struct JobsFilterBar: View {
+
+    @Binding var dateFilter: JobDateFilter
+    var sort: Binding<JobSort>? = nil  // nil hides the sort menu (All Jobs has no scores)
+    let resultCount: Int?
+
+    var body: some View {
+        HStack(spacing: 8) {
+
+            if let resultCount {
+                Text("\(resultCount) \(resultCount == 1 ? "job" : "jobs")")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.45))
+                    .contentTransition(.numericText())
+                    .animation(.easeOut(duration: 0.2), value: resultCount)
+            }
+
+            Spacer(minLength: 4)
+
+            Menu {
+                Picker("Date posted", selection: $dateFilter) {
+                    ForEach(JobDateFilter.allCases) { filter in
+                        Text(filter.title).tag(filter)
+                    }
+                }
+            } label: {
+                FilterChip(
+                    icon: "clock",
+                    title: dateFilter.title,
+                    isActive: dateFilter != .anyTime
+                )
+            }
+            .accessibilityLabel("Date posted: \(dateFilter.title)")
+
+            if dateFilter != .anyTime {
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    dateFilter = .anyTime
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.09), lineWidth: 0.5))
+                }
+                .accessibilityLabel("Clear date filter")
+            }
+
+            if let sort {
+                Menu {
+                    Picker("Sort", selection: sort) {
+                        ForEach(JobSort.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                } label: {
+                    FilterChip(
+                        icon: "arrow.up.arrow.down",
+                        title: sort.wrappedValue.title,
+                        isActive: sort.wrappedValue != .bestMatch
+                    )
+                }
+                .accessibilityLabel("Sort: \(sort.wrappedValue.title)")
+            }
+        }
+    }
+}
+
+// MARK: - Filter Chip
+
+private struct FilterChip: View {
+
+    let icon: String
+    let title: String
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .lineLimit(1)
+            Image(systemName: "chevron.down")
+                .font(.system(size: 8, weight: .bold))
+                .opacity(0.6)
+        }
+        .foregroundColor(isActive ? .white : .white.opacity(0.55))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background {
+            if isActive {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
+                        Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.3)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            } else {
+                Color.white.opacity(0.05)
+            }
+        }
+        .overlay(
+            Capsule()
+                .stroke(Color.white.opacity(isActive ? 0.18 : 0.09), lineWidth: 0.5)
+        )
+        .clipShape(Capsule())
+        // Badge dot marks a non-default choice
+        .overlay(alignment: .topTrailing) {
+            if isActive {
+                Circle()
+                    .fill(Color(red: 0.0, green: 0.83, blue: 0.67))
+                    .frame(width: 7, height: 7)
+                    .overlay(Circle().stroke(Color(red: 0.04, green: 0.04, blue: 0.06), lineWidth: 1.5))
+                    .offset(x: 1, y: -1)
+            }
+        }
+    }
+}

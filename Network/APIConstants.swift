@@ -11,6 +11,7 @@ enum APIConstants {
     static let uploadResume = "\(baseURL)/resume/upload"
     static let optimizeResume = "\(baseURL)/resume/optimize"
     static let downloadResume = "\(baseURL)/resume/download"
+    static let scoreResume = "\(baseURL)/resume/score"
 
     // MARK: - Jobs
     static let jobsFromResume = "\(baseURL)/jobs/from-resume"

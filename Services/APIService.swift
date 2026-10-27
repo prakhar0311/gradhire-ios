@@ -92,11 +92,16 @@ final class APIService {
                 }
                 
                 do {
-                    let decoded = try JSONDecoder().decode(
+                    var decoded = try JSONDecoder().decode(
                         ResumeOptimizationResponse.self,
                         from: data
                     )
-                    
+
+                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let resume = json["optimized_resume"] as? [String: Any] {
+                        decoded.optimizedResumeJSON = try? JSONSerialization.data(withJSONObject: resume)
+                    }
+
                     completion(.success(decoded))
                     
                 } catch {
@@ -116,6 +121,63 @@ final class APIService {
         }.resume()
     }
     
+    func optimizeResume(
+        resumeText: String,
+        jobTitle: String,
+        jobDescription: String
+    ) async throws -> ResumeOptimizationResponse {
+        try await withCheckedThrowingContinuation { continuation in
+            optimizeResume(
+                resumeText: resumeText,
+                jobTitle: jobTitle,
+                jobDescription: jobDescription
+            ) { continuation.resume(with: $0) }
+        }
+    }
+
+    // MARK: - Score Resumes
+
+    /// Scores each resume against the job with the backend's matching logic
+    /// (the same function used for job match scores). Returns one score per text.
+    func scoreResumes(
+        jobDescription: String,
+        resumeTexts: [String]
+    ) async throws -> [Int] {
+
+        guard let url = URL(string: APIConstants.scoreResume) else {
+            throw JobAPIError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "job_description": jobDescription,
+            "resume_texts": resumeTexts
+        ])
+
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            throw JobAPIError.from(error)
+        }
+
+        guard let http = response as? HTTPURLResponse,
+              (200...299).contains(http.statusCode),
+              let decoded = try? JSONDecoder().decode(ResumeScoreResponse.self, from: data),
+              decoded.scores.count == resumeTexts.count else {
+            throw JobAPIError.invalidResponse
+        }
+
+        return decoded.scores
+    }
+
     // MARK: - Upload Resume
     
     func uploadResume(
@@ -237,6 +299,7 @@ final class APIService {
     func downloadOptimizedResume(
         resumeURL: URL,
         jobDescription: String,
+        optimizedResumeJSON: Data? = nil,
         completion: @escaping (Result<URL, Error>) -> Void
     ) {
 
@@ -290,7 +353,20 @@ final class APIService {
                 .data(using: .utf8)!
         )
         body.append(jobDescription.data(using: .utf8) ?? Data())
-        body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append("\r\n".data(using: .utf8)!)
+
+        // Build the PDF from the resume that was shown and scored
+        if let optimizedResumeJSON {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append(
+                "Content-Disposition: form-data; name=\"optimized_resume\"\r\n\r\n"
+                    .data(using: .utf8)!
+            )
+            body.append(optimizedResumeJSON)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
 
