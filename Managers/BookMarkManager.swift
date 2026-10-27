@@ -3,35 +3,40 @@ import Combine
 
 final class BookmarkManager: ObservableObject {
 
-    @Published private(set) var savedJobIDs: Set<UUID> = []
+    // Full jobs are stored (newest first) so saved jobs survive new searches
+    // and app restarts, not just the list they were saved from.
+    @Published private(set) var savedJobs: [Job] = []
 
-    private let key = "saved_jobs"
+    private let key = "saved_jobs_v2"
+    private let legacyKey = "saved_jobs" // IDs only; those IDs were random per request
 
     init() {
         load()
     }
 
     func isSaved(_ job: Job) -> Bool {
-        savedJobIDs.contains(job.id)
+        savedJobs.contains { $0.id == job.id }
     }
 
     func toggle(_ job: Job) {
-        if savedJobIDs.contains(job.id) {
-            savedJobIDs.remove(job.id)
+        if isSaved(job) {
+            savedJobs.removeAll { $0.id == job.id }
         } else {
-            savedJobIDs.insert(job.id)
+            savedJobs.insert(job, at: 0)
         }
         persist()
     }
 
     private func persist() {
-        let ids = savedJobIDs.map { $0.uuidString }
-        UserDefaults.standard.set(ids, forKey: key)
+        guard let data = try? Job.encoder.encode(savedJobs) else { return }
+        UserDefaults.standard.set(data, forKey: key)
     }
 
     private func load() {
-        let ids = UserDefaults.standard.stringArray(forKey: key) ?? []
-        savedJobIDs = Set(ids.compactMap { UUID(uuidString: $0) })
+        UserDefaults.standard.removeObject(forKey: legacyKey)
+
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let jobs = try? Job.decoder.decode([Job].self, from: data) else { return }
+        savedJobs = jobs
     }
 }
-

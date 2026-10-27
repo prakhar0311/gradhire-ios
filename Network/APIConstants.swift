@@ -3,7 +3,7 @@ import Foundation
 enum APIConstants {
 
     // ✅ Railway Backend Base URL
-    static let baseURL = "https://web-production-0b80c.up.railway.app"
+    static let baseURL = "https://gradhire-backend.onrender.com"
     
 
 
@@ -14,6 +14,7 @@ enum APIConstants {
 
     // MARK: - Jobs
     static let jobsFromResume = "\(baseURL)/jobs/from-resume"
+    static let newGradJobs = "\(baseURL)/jobs/new-grad"
     static let jobsMatch = "\(baseURL)/jobs/match"
 }
 

@@ -1,304 +1,781 @@
 import SwiftUI
 import UIKit
 
-// MARK: - JOB LIST VIEW
+// MARK: - Jobs Tab
+
+enum JobsTab: String, CaseIterable, Identifiable {
+    case forYou = "For You"
+    case allJobs = "All Jobs"
+
+    var id: String { rawValue }
+}
+
+// MARK: - Job List View
 
 struct JobListView: View {
 
-    let jobs: [Job]
-    @StateObject private var bookmarks = BookmarkManager()
+    let country: String
+    @Binding var selectedTab: JobsTab
 
-    // UI State
-    @State private var isLoading = true
-    @State private var didTriggerHaptic = false
-    @State private var errorMessage: String? = nil
+    @EnvironmentObject private var bookmarks: BookmarkManager
+    @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
+    @EnvironmentObject private var allJobs: AllJobsViewModel
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
 
-            // MARK: Background Glow
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.18),
-                    Color.purple.opacity(0.14),
-                    Color.white
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .blur(radius: 80)
-            .ignoresSafeArea()
+            // Dark base
+            Color(red: 0.04, green: 0.04, blue: 0.06)
+                .ignoresSafeArea()
+
+            // Mesh gradient background
+            GeometryReader { geo in
+                ZStack {
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.2, y: 0.1),
+                        startRadius: 0,
+                        endRadius: 300
+                    )
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.15),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.85, y: 0.4),
+                        startRadius: 0,
+                        endRadius: 260
+                    )
+                }
+                .frame(width: geo.size.width, height: geo.size.height * 0.55)
+                .ignoresSafeArea()
+            }
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 22) {
+                LazyVStack(spacing: 0) {
 
-                    // MARK: Header
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Best Matches")
-                            .font(.system(size: 34, weight: .bold))
+                    header
 
-                        Text("AI matched roles for your resume")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                    JobsTabPicker(selection: $selectedTab)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 16)
+
+                    switch selectedTab {
+                    case .forYou:  forYouContent
+                    case .allJobs: allJobsContent
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
 
-                    // MARK: Loading → Error → Empty → Jobs
-
-                    if isLoading {
-
-                        ForEach(0..<5, id: \.self) { _ in
-                            SkeletonJobCard()
-                                .padding(.horizontal)
-                        }
-
-                    } else if let errorMessage {
-
-                        ErrorStateView(
-                            message: errorMessage,
-                            retryAction: {
-                                self.errorMessage = nil
-                                UIImpactFeedbackGenerator(style: .light)
-                                    .impactOccurred()
-                            }
-                        )
-                        .padding(.horizontal)
-
-                    } else if jobs.isEmpty {
-
-                        EmptyJobResultsView()
-                            .padding(.horizontal)
-
-                    } else {
-
-                        ForEach(jobs) { job in
-                            NavigationLink(
-                                destination: JobDetailView(job: job)
-                            ) {
-                                PremiumJobCard(
-                                    job: job,
-                                    isSaved: bookmarks.isSaved(job),
-                                    onBookmarkTap: {
-                                        bookmarks.toggle(job)
-                                    }
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                    Spacer(minLength: 40)
                 }
-                .padding(.vertical)
+                .padding(.top, 16)
+            }
+            .refreshable {
+                switch selectedTab {
+                case .forYou:  await matchedJobs.refresh()
+                case .allJobs: await allJobs.refresh()
+                }
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-
-        // MARK: Toolbar
+        .toolbarBackground(
+            Color(red: 0.04, green: 0.04, blue: 0.06),
+            for: .navigationBar
+        )
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(selectedTab == .forYou ? "JOB MATCHES" : "NEW GRAD JOBS")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.35))
+            }
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(
-                    destination: SavedJobsView(allJobs: jobs)
-                        .environmentObject(bookmarks)
-                ) {
-                    Image(systemName: "bookmark.fill")
+                NavigationLink(destination: SavedJobsView()) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.07))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: "bookmark.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
             }
         }
-
-        // MARK: Simulated Loading
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                isLoading = false
-
-                if !didTriggerHaptic {
-                    UIImpactFeedbackGenerator(style: .soft)
-                        .impactOccurred()
-                    didTriggerHaptic = true
-                }
+            if selectedTab == .allJobs {
+                allJobs.loadIfNeeded(country: country)
             }
+        }
+        .onChange(of: selectedTab) { _, tab in
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            if tab == .allJobs {
+                allJobs.loadIfNeeded(country: country)
+            }
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(selectedTab == .forYou ? "Best Matches" : "New Grad Jobs")
+                .font(.system(size: 32, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+
+            Text(
+                selectedTab == .forYou
+                ? "AI matched roles for your resume"
+                : "Fresh entry-level openings, newest first"
+            )
+            .font(.system(size: 13))
+            .foregroundColor(.white.opacity(0.38))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+
+    // MARK: - For You
+
+    @ViewBuilder
+    private var forYouContent: some View {
+        if !matchedJobs.hasResume {
+            DarkEmptyView(
+                icon: "doc.text.magnifyingglass",
+                title: "Get matched to jobs",
+                message: "Upload your resume to see roles matched to your skills.",
+                actionTitle: "Upload Resume",
+                action: { dismiss() }
+            )
+            .padding(.horizontal, 16)
+
+        } else {
+            switch matchedJobs.state {
+            case .idle, .loading:
+                skeletonList
+
+            case .failed(let message):
+                DarkErrorView(message: message, retryAction: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    matchedJobs.retry()
+                })
+                .padding(.horizontal, 16)
+
+            case .empty:
+                DarkEmptyView(
+                    title: "No matches found",
+                    message: "We couldn't find entry-level roles for this resume right now. Check All Jobs or try again later.",
+                    actionTitle: "Browse All Jobs",
+                    action: { selectedTab = .allJobs }
+                )
+                .padding(.horizontal, 16)
+
+            case .loaded:
+                jobRows(matchedJobs.jobs)
+            }
+        }
+    }
+
+    // MARK: - All Jobs
+
+    @ViewBuilder
+    private var allJobsContent: some View {
+        switch allJobs.state {
+        case .idle, .loading:
+            skeletonList
+
+        case .failed(let message):
+            DarkErrorView(message: message, retryAction: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                allJobs.retry()
+            })
+            .padding(.horizontal, 16)
+
+        case .empty:
+            DarkEmptyView(
+                title: "No new grad jobs right now",
+                message: "New openings are posted daily. Pull down to refresh or check back soon."
+            )
+            .padding(.horizontal, 16)
+
+        case .loaded:
+            if let refreshError = allJobs.refreshError {
+                DarkInlineBanner(message: refreshError, onDismiss: allJobs.dismissRefreshError)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+            }
+
+            jobRows(allJobs.jobs)
+
+            paginationFooter
+        }
+    }
+
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if let loadMoreError = allJobs.loadMoreError {
+            DarkInlineBanner(
+                message: loadMoreError,
+                actionTitle: "Retry",
+                action: allJobs.retryLoadMore
+            )
+            .padding(.horizontal, 16)
+
+        } else if allJobs.hasMore {
+            ProgressView()
+                .tint(Color(red: 0.55, green: 0.43, blue: 1.0))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { allJobs.loadMoreIfNeeded() }
+
+        } else {
+            Text("You're all caught up")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(.white.opacity(0.22))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+        }
+    }
+
+    // MARK: - Shared Rows
+
+    private var skeletonList: some View {
+        ForEach(0..<5, id: \.self) { _ in
+            DarkSkeletonCard()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+        }
+    }
+
+    private func jobRows(_ jobs: [Job]) -> some View {
+        ForEach(jobs) { job in
+            NavigationLink(destination: JobDetailView(job: job)) {
+                DarkJobCard(
+                    job: job,
+                    isSaved: bookmarks.isSaved(job),
+                    onBookmarkTap: { bookmarks.toggle(job) }
+                )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
         }
     }
 }
 
-/////////////////////////////////////////////////////////////
-// MARK: - MATCH SCORE RING
-/////////////////////////////////////////////////////////////
+// MARK: - Tab Picker
 
-struct MatchScoreRing: View {
+struct JobsTabPicker: View {
+
+    @Binding var selection: JobsTab
+    @Namespace private var namespace
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(JobsTab.allCases) { tab in
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        selection = tab
+                    }
+                } label: {
+                    Text(tab.rawValue)
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .foregroundColor(selection == tab ? .white : .white.opacity(0.45))
+                        .background {
+                            if selection == tab {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
+                                                Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.3)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .matchedGeometryEffect(id: "selectedTab", in: namespace)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.09), lineWidth: 0.5)
+        )
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - Dark Job Card
+
+struct DarkJobCard: View {
+
+    let job: Job
+    let isSaved: Bool
+    let onBookmarkTap: () -> Void
+
+    @State private var pulse = false
+
+    private var iconColor: Color {
+        switch job.matchScore {
+        case (85...100)?: return Color(red: 0.39, green: 0.22, blue: 1.0)
+        case (65..<85)?:  return Color(red: 0.0, green: 0.83, blue: 0.67)
+        case nil:         return Color(red: 0.39, green: 0.22, blue: 1.0)
+        default:          return Color(red: 0.98, green: 0.75, blue: 0.18)
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+
+            // Company icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(iconColor.opacity(0.12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            .stroke(iconColor.opacity(0.25), lineWidth: 0.5)
+                    )
+                    .frame(width: 52, height: 52)
+
+                Image(systemName: "building.2.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(iconColor)
+            }
+
+            // Text column
+            VStack(alignment: .leading, spacing: 5) {
+
+                HStack(alignment: .top, spacing: 7) {
+                    Text(job.title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let matchScore = job.matchScore, matchScore >= 85 {
+                        Text("TOP MATCH")
+                            .font(.system(size: 9, weight: .black))
+                            .tracking(0.5)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.98, green: 0.75, blue: 0.18),
+                                        Color(red: 0.98, green: 0.45, blue: 0.08)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+                            .scaleEffect(pulse ? 1.04 : 1.0)
+                            .fixedSize()
+                            .onAppear {
+                                withAnimation(
+                                    .easeInOut(duration: 1.8)
+                                    .repeatForever(autoreverses: true)
+                                ) { pulse = true }
+                            }
+                    }
+                }
+
+                Text(job.company)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.45))
+
+                Text(job.location)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.25))
+                    .padding(.bottom, 6)
+
+                // Real metadata from the posting (shown only when Adzuna provides it)
+                if job.contractLabel != nil || job.postedAgoText != nil {
+                    HStack(spacing: 6) {
+                        if let contract = job.contractLabel {
+                            DarkTag(text: contract, teal: false)
+                        }
+                        if let postedAgo = job.postedAgoText {
+                            DarkTag(text: postedAgo, teal: true)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Right controls
+            VStack(spacing: 10) {
+
+                Button(action: {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onBookmarkTap()
+                }) {
+                    Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(
+                            isSaved
+                            ? Color(red: 0.0, green: 0.83, blue: 0.67)
+                            : .white.opacity(0.3)
+                        )
+                }
+
+                if let matchScore = job.matchScore {
+                    DarkMatchRing(score: matchScore)
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.2))
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.09), lineWidth: 0.5)
+        )
+        .cornerRadius(20)
+    }
+}
+
+// MARK: - Dark Tag
+
+struct DarkTag: View {
+    let text: String
+    let teal: Bool
+
+    var color: Color {
+        teal
+        ? Color(red: 0.0, green: 0.83, blue: 0.67)
+        : Color(red: 0.39, green: 0.22, blue: 1.0)
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(color.opacity(0.9))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.1))
+            .overlay(
+                Capsule()
+                    .stroke(color.opacity(0.25), lineWidth: 0.5)
+            )
+            .clipShape(Capsule())
+    }
+}
+
+// MARK: - Dark Match Ring
+
+struct DarkMatchRing: View {
 
     let score: Int
     @State private var progress: CGFloat = 0
 
-    private var gradient: [Color] {
-        if score >= 80 { return [.green, .mint] }
-        if score >= 60 { return [.blue, .cyan] }
-        return [.orange, .red]
+    private var ringColors: [Color] {
+        switch score {
+        case 85...100: return [
+            Color(red: 0.0, green: 0.83, blue: 0.67),
+            Color(red: 0.39, green: 0.22, blue: 1.0)
+        ]
+        case 65..<85: return [
+            Color(red: 0.39, green: 0.22, blue: 1.0),
+            Color(red: 0.0, green: 0.83, blue: 0.67)
+        ]
+        default: return [
+            Color(red: 0.98, green: 0.75, blue: 0.18),
+            Color(red: 0.98, green: 0.45, blue: 0.08)
+        ]
+        }
     }
 
     var body: some View {
         ZStack {
-
             Circle()
-                .stroke(Color.gray.opacity(0.15), lineWidth: 5)
+                .stroke(Color.white.opacity(0.07), lineWidth: 4)
 
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
                     LinearGradient(
-                        colors: gradient,
+                        colors: ringColors,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 4, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
 
             Text("\(score)%")
-                .font(.caption2.bold())
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.white)
         }
-        .frame(width: 40, height: 40)
+        .frame(width: 42, height: 42)
         .onAppear {
-            withAnimation(.easeOut(duration: 1)) {
+            withAnimation(.easeOut(duration: 1.0)) {
                 progress = CGFloat(score) / 100
             }
         }
     }
 }
 
-/////////////////////////////////////////////////////////////
-// MARK: - PREMIUM JOB CARD
-/////////////////////////////////////////////////////////////
+// MARK: - Skeleton Card
 
-struct PremiumJobCard: View {
+struct DarkSkeletonCard: View {
 
-let job: Job
-let isSaved: Bool
-let onBookmarkTap: () -> Void
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color.white.opacity(0.06))
+                .frame(width: 52, height: 52)
 
-@State private var pulse = false
+            VStack(alignment: .leading, spacing: 9) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.white.opacity(0.07))
+                    .frame(height: 12)
+                    .frame(maxWidth: .infinity)
 
-var body: some View {
-    HStack(alignment: .top, spacing: 16) {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.white.opacity(0.05))
+                    .frame(height: 10)
+                    .frame(maxWidth: 160)
 
-        // MARK: Company Icon
-        Image(systemName: "building.2.fill")
-            .font(.system(size: 26))
-            .foregroundColor(.blue)
-            .frame(width: 56, height: 56)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.blue.opacity(0.12))
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.white.opacity(0.04))
+                    .frame(height: 9)
+                    .frame(maxWidth: 100)
+
+                HStack(spacing: 6) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.05))
+                        .frame(width: 58, height: 18)
+                    Capsule()
+                        .fill(Color.white.opacity(0.05))
+                        .frame(width: 84, height: 18)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.white.opacity(0.07), lineWidth: 0.5)
+        )
+        .shimmering()
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .accessibilityLabel("Loading job")
+    }
+}
+
+// MARK: - Shimmer
+
+struct ShimmerModifier: ViewModifier {
+
+    @State private var phase: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geo in
+                    LinearGradient(
+                        colors: [
+                            Color.clear,
+                            Color.white.opacity(0.07),
+                            Color(red: 0.55, green: 0.43, blue: 1.0).opacity(0.08),
+                            Color.clear
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geo.size.width * 0.6)
+                    .offset(x: -geo.size.width * 0.6 + phase * geo.size.width * 1.6)
+                }
+                .allowsHitTesting(false)
             )
-
-        // MARK: Text Column
-        VStack(alignment: .leading, spacing: 8) {
-
-            // Title + Inline Badge
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-
-                Text(job.title)
-                    .font(.headline)
-                    .lineLimit(3)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if job.matchScore >= 85 {
-                    Text("TOP MATCH")
-                        .font(.system(size: 9, weight: .bold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            LinearGradient(
-                                colors: [.yellow, .orange],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                        .scaleEffect(pulse ? 1.05 : 1)
-                        .shadow(
-                            color: .orange.opacity(0.4),
-                            radius: pulse ? 6 : 2
-                        )
-                        .fixedSize()
-                        .onAppear {
-                            withAnimation(
-                                .easeInOut(duration: 1.8)
-                                    .repeatForever(autoreverses: true)
-                            ) {
-                                pulse = true
-                            }
-                        }
+            .onAppear {
+                withAnimation(.linear(duration: 1.4).repeatForever(autoreverses: false)) {
+                    phase = 1
                 }
             }
+    }
+}
 
-            Text(job.company)
-                .font(.subheadline)
-                .foregroundColor(.gray)
+extension View {
+    func shimmering() -> some View {
+        modifier(ShimmerModifier())
+    }
+}
 
-            Text(job.location)
-                .font(.caption)
-                .foregroundColor(.gray.opacity(0.7))
+// MARK: - Error View
+
+struct DarkErrorView: View {
+    let message: String
+    let retryAction: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 36))
+                .foregroundColor(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.7))
+
+            Text("Couldn't load jobs")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.7))
+
+            Text(message)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.45))
+                .multilineTextAlignment(.center)
+
+            Button(action: retryAction) {
+                Label("Retry", systemImage: "arrow.clockwise")
+                    .font(.system(size: 14, weight: .semibold))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(
+                                Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                                lineWidth: 0.5
+                            )
+                    )
+                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                    .cornerRadius(14)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .padding(32)
+        .background(Color.white.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .cornerRadius(20)
+    }
+}
 
-        // MARK: Right Controls
-        VStack(spacing: 10) {
+// MARK: - Empty View
 
-            Button(action: onBookmarkTap) {
-                Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(isSaved ? .green : .gray)
+struct DarkEmptyView: View {
+    var icon: String = "briefcase.fill"
+    var title: String = "No matches found"
+    var message: String = "Try uploading a different resume or check back later."
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 40))
+                .foregroundColor(.white.opacity(0.12))
+
+            Text(title)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.5))
+
+            Text(message)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.28))
+                .multilineTextAlignment(.center)
+
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(
+                                    Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                                    lineWidth: 0.5
+                                )
+                        )
+                        .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                        .cornerRadius(14)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(40)
+        .background(Color.white.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .cornerRadius(20)
+    }
+}
+
+// MARK: - Inline Banner
+
+struct DarkInlineBanner: View {
+    let message: String
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
+    var onDismiss: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+
+            Text(message)
+                .font(.system(size: 12))
+                .foregroundColor(.white.opacity(0.5))
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let actionTitle, let action {
+                Button(actionTitle, action: action)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
             }
 
-            MatchScoreRing(score: job.matchScore)
-
-            Image(systemName: "chevron.right")
-                .foregroundColor(.gray.opacity(0.4))
+            if let onDismiss {
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.35))
+                }
+                .accessibilityLabel("Dismiss")
+            }
         }
+        .padding(14)
+        .background(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.07))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.2), lineWidth: 0.5)
+        )
+        .cornerRadius(14)
     }
-    .padding(18)
-    .background(.ultraThinMaterial)
-    .cornerRadius(24)
-    .overlay(
-        RoundedRectangle(cornerRadius: 24)
-            .stroke(Color.white.opacity(0.4))
-    )
-    .shadow(color: .black.opacity(0.08), radius: 16, y: 10)
-    .padding(.horizontal)
 }
 
-}
-
-
-
-/////////////////////////////////////////////////////////////
-// MARK: - PREVIEW
-/////////////////////////////////////////////////////////////
+// MARK: - Preview
 
 #Preview {
     NavigationStack {
-        JobListView(jobs: [
-            Job(
-                id: UUID(),
-                title: "Junior Software Engineer",
-                company: "Amazon",
-                location: "Bangalore, India",
-                description: "Build scalable backend services.",
-                matchScore: 92,
-                applyURL: "https://amazon.jobs"
-            ),
-            Job(
-                id: UUID(),
-                title: "iOS Developer Intern",
-                company: "Apple",
-                location: "Hyderabad, India",
-                description: "Work on SwiftUI apps.",
-                matchScore: 88,
-                applyURL: "https://jobs.apple.com"
-            )
-        ])
+        JobListView(country: "in", selectedTab: .constant(.allJobs))
     }
+    .environmentObject(BookmarkManager())
+    .environmentObject(MatchedJobsViewModel())
+    .environmentObject(AllJobsViewModel())
 }
-
-

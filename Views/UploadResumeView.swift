@@ -3,331 +3,516 @@ import UniformTypeIdentifiers
 
 struct UploadResumeView: View {
 
-@EnvironmentObject var resumeManager: ResumeManager
+    @EnvironmentObject var resumeManager: ResumeManager
+    @EnvironmentObject var matchedJobs: MatchedJobsViewModel
 
-@State private var showPicker = false
-@State private var selectedFileName: String?
-@State private var goToJobs = false
-@State private var isUploading = false
-@State private var errorMessage: String?
-@State private var jobs: [Job] = []
-@StateObject private var network = NetworkMonitor.shared
-@State private var showRetry = false
+    @State private var showPicker = false
+    @State private var selectedFileName: String?
+    @State private var goToJobs = false
+    @State private var isUploading = false
+    @State private var errorMessage: String?
+    @State private var jobsTab: JobsTab = .forYou
+    @StateObject private var network = NetworkMonitor.shared
+    @State private var showRetry = false
+    @State private var selectedCountry = "in"
+    @State private var animate = false
 
-@State private var selectedCountry = "in"
-@State private var animate = false
+    struct CountryOption: Identifiable {
+        let id = UUID()
+        let label: String
+        let code: String
+        let enabled: Bool
+    }
 
-// ✅ UPDATED COUNTRY MODEL
-struct CountryOption {
-    let label: String
-    let code: String
-    let enabled: Bool
-}
+    let countries: [CountryOption] = [
+        CountryOption(label: "🇮🇳 India", code: "in", enabled: true),
+//        CountryOption(label: "🇺🇸 USA",   code: "us", enabled: false)
+    ]
 
-// ✅ India enabled, US coming soon
-let countries = [
-    CountryOption(label: "🇮🇳 India", code: "in", enabled: true),
-    CountryOption(label: "🇺🇸 USA Coming Soon", code: "us", enabled: false)
-]
+    var body: some View {
+        NavigationStack {
+            ZStack(alignment: .top) {
 
-var body: some View {
-    NavigationStack {
-        ZStack {
+                Color(red: 0.04, green: 0.04, blue: 0.06)
+                    .ignoresSafeArea()
 
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.2),
-                    Color.purple.opacity(0.15),
-                    Color.white
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .blur(radius: 90)
-            .ignoresSafeArea()
+                VStack(spacing: 20) {
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
+                    // HERO
+                    ZStack(alignment: .bottom) {
 
-                    headerImage
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.1, green: 0.02, blue: 0.22),
+                                Color(red: 0.18, green: 0.06, blue: 0.38),
+                                Color(red: 0.04, green: 0.04, blue: 0.06)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
 
-                    VStack(spacing: 22) {
+                        ZStack {
+                            RadialGradient(
+                                colors: [
+                                    Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.45),
+                                    Color.clear
+                                ],
+                                center: .init(x: 0.3, y: 0.3),
+                                startRadius: 0,
+                                endRadius: 220
+                            )
+                            RadialGradient(
+                                colors: [
+                                    Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.18),
+                                    Color.clear
+                                ],
+                                center: .init(x: 0.82, y: 0.65),
+                                startRadius: 0,
+                                endRadius: 160
+                            )
+                        }
 
-                        titleSection
+                        Image("uploadresume")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(maxWidth: .infinity)
+                            .opacity(0.40)
+                            .clipped()
+
+                        LinearGradient(
+                            colors: [
+                                Color.clear,
+                                Color(red: 0.04, green: 0.04, blue: 0.06)
+                            ],
+                            startPoint: .init(x: 0.5, y: 0.4),
+                            endPoint: .bottom
+                        )
+
+                        VStack(spacing: 8) {
+                            Text("GradHire")
+                                .font(.system(size: 42, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                                .opacity(animate ? 1 : 0)
+                                .offset(y: animate ? 0 : 16)
+
+                            Text("AI-powered job matching for new grads")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.45))
+                                .opacity(animate ? 1 : 0)
+
+                            Text("SECURE  •  PRIVATE  •  SMART MATCHING")
+                                .font(.system(size: 10, weight: .semibold))
+                                .tracking(1.4)
+                                .foregroundColor(.white.opacity(0.22))
+                                .opacity(animate ? 1 : 0)
+                        }
+                        .padding(.bottom, 100) //28
+                        .frame(maxWidth: .infinity)
+                    }
+                    .frame(height: 480) //420
+                    .clipped()
+
+                    // CONTENT
+                    VStack(spacing: 16) {
+
                         countryPicker
                         uploadButton
                         statusSection
+                        browseAllJobsButton
+                        trustBadges
 
-                        Spacer(minLength: 40)
-
-                        NavigationLink(
-                            destination: JobListView(jobs: jobs),
-                            isActive: $goToJobs
-                        ) { EmptyView() }
+                        Spacer()
                     }
-                    .padding(24)
-                    .background(Color.white)
-                    .cornerRadius(30)
-                    .offset(y: -30)
+                    .frame(maxWidth: 380) // 👈 LIMIT WIDTH (KEY FIX)
+                    .frame(maxWidth: .infinity) // 👈 center it
+                    .padding(.horizontal, 16)
+                    .padding(.top, 24)
+                    .padding(.bottom, 32)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(red: 0.04, green: 0.04, blue: 0.06))
+
+                    NavigationLink(
+                        destination: JobListView(country: selectedCountry, selectedTab: $jobsTab),
+                        isActive: $goToJobs
+                    ) { EmptyView() }
                 }
             }
-            .scrollDisabled(true)
-        }
-        .navigationBarHidden(true)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.9)) {
-                animate = true
+            .ignoresSafeArea(.all, edges: .top)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.9)) { animate = true }
             }
-        }
-        .fileImporter(
-            isPresented: $showPicker,
-            allowedContentTypes: [.pdf],
-            allowsMultipleSelection: false,
-            onCompletion: handleFileImport
-        )
-    }
-}
-
-// MARK: UI Components
-
-private var headerImage: some View {
-    GeometryReader { geo in
-        let offset = geo.frame(in: .global).minY
-
-        ZStack(alignment: .bottom) {
-            Image("uploadresume")
-                .resizable()
-                .scaledToFill()
-                .frame(height: 420 + (offset > 0 ? offset : 0))
-                .offset(y: (offset > 0 ? -offset : 0))
-                .clipped()
-                .ignoresSafeArea(.all, edges: .top)
-
-            LinearGradient(
-                colors: [.clear, .white],
-                startPoint: .center,
-                endPoint: .bottom
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: NSNotification.Name("GO_TO_ROOT")
+                )
+            ) { _ in goToJobs = false }
+            .fileImporter(
+                isPresented: $showPicker,
+                allowedContentTypes: [.pdf],
+                allowsMultipleSelection: false,
+                onCompletion: handleFileImport
             )
         }
     }
-    .frame(height: 420)
-    .ignoresSafeArea(edges: .top)
-}
 
-private var titleSection: some View {
-    VStack(spacing: 8) {
-        Text("GradHire")
-            .font(.system(size: 40, weight: .bold))
+    // MARK: - Country Picker
 
-        Text("AI-powered job matching for new grads")
-            .foregroundColor(.gray)
+    private var countryPicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
 
-        Text("Secure • Private • Smart Matching")
-            .font(.caption)
-            .foregroundColor(.gray.opacity(0.7))
-    }
-    .opacity(animate ? 1 : 0)
-    .offset(y: animate ? 0 : 20)
-}
+            Text("SELECT COUNTRY")
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(.white.opacity(0.3))
 
-private var countryPicker: some View {
-    VStack(alignment: .leading, spacing: 6) {
-
-        Text("Select Country")
-            .font(.caption)
-            .foregroundColor(.gray)
-
-        Picker("Country", selection: $selectedCountry) {
-            ForEach(countries, id: \.code) { country in
-                Text(country.label)
-                    .tag(country.code)
+            HStack(spacing: 12) {
+                ForEach(countries) { country in
+                    CountryButton(
+                        country: country,
+                        isSelected: selectedCountry == country.code,
+                        onTap: {
+                            if country.enabled { selectedCountry = country.code }
+                        }
+                    )
+                    .disabled(!country.enabled)
+                }
             }
         }
-        .pickerStyle(.segmented)
-
-        // ✅ Prevent selecting disabled country
-        .onChange(of: selectedCountry) { newValue in
-            if let selected = countries.first(where: { $0.code == newValue }),
-               !selected.enabled {
-                selectedCountry = "in"
-            }
-        }
-
-        // ✅ Extra polish badge
-        //Text("🇺🇸 USA support launching soon 🚀")
-            //.font(.caption2)
-          //  .foregroundColor(.gray.opacity(0.8))
+        .padding(16)
+        .padding(.horizontal, 4) // FIX overflow
+        .frame(maxWidth: .infinity)
+        .layoutPriority(1) // 👈 prevents weird stretching
+        .background(Color.white.opacity(0.04))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
+        .cornerRadius(18)
     }
-    .padding()
-    .background(.ultraThinMaterial)
-    .cornerRadius(22)
-}
 
-private var uploadButton: some View {
-    Button {
-        errorMessage = nil
-        showRetry = false
-        showPicker = true
-    } label: {
-        Label("Upload Resume (PDF)", systemImage: "arrow.up.doc.fill")
-            .font(.headline)
+    // MARK: - Upload Button
+
+    private var uploadButton: some View {
+        Button {
+            errorMessage = nil
+            showRetry = false
+            showPicker = true
+        } label: {
+            HStack(spacing: 10) {
+                Spacer()
+
+                Image(systemName: "arrow.up.doc.fill")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Text("Upload Resume (PDF)")
+                    .font(.system(size: 16, weight: .black, design: .rounded))
+
+                Spacer()
+            }
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity)
-            .padding()
+            .padding(.horizontal, 2)
             .background(
-                LinearGradient(
-                    colors: [.blue, .purple],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.39, green: 0.22, blue: 1.0),
+                                Color(red: 0.0, green: 0.83, blue: 0.67)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
             )
             .foregroundColor(.white)
-            .cornerRadius(22)
-    }
-    .disabled(isUploading)
-}
-
-private var statusSection: some View {
-    Group {
-        if isUploading {
-            ProgressView("Analyzing resume...")
+            .shadow(
+                color: Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                radius: 16, x: 0, y: 6
+            )
         }
-        else if let errorMessage {
-            VStack(spacing: 8) {
-                Text(errorMessage)
-                    .foregroundColor(.red)
-                    .font(.caption)
+        .padding(.horizontal, 4)
+        .disabled(isUploading) // ✅ keeps it unclickable during upload
+    }
 
-                if showRetry {
-                    Button {
-                        showRetry = false
-                        showPicker = true
-                    } label: {
-                        Text("Retry")
-                            .font(.subheadline.bold())
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
-                            .background(Color.blue.opacity(0.15))
-                            .cornerRadius(12)
-                    }
-                }
+    // MARK: - Browse All Jobs
+
+    private var browseAllJobsButton: some View {
+        Button {
+            jobsTab = .allJobs
+            goToJobs = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "briefcase.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Browse all new grad jobs")
+                    .font(.system(size: 14, weight: .semibold))
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 11, weight: .semibold))
             }
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .background(Color.white.opacity(0.04))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+            )
+            .foregroundColor(.white.opacity(0.6))
+            .cornerRadius(16)
         }
-        else if let fileName = selectedFileName {
-            Label(fileName, systemImage: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.caption)
-        }
-        else {
-            Text("PDF only • Max 1 file")
-                .font(.caption)
-                .foregroundColor(.gray)
-        }
+        .padding(.horizontal, 4)
+        .disabled(isUploading)
     }
-}
 
-// MARK: File Handling
+    // MARK: - Status Section
 
-private func handleFileImport(_ result: Result<[URL], Error>) {
-
-    switch result {
-
-    case .failure(let error):
-        errorMessage = error.localizedDescription
-        showRetry = true
-
-    case .success(let urls):
-
-        guard let url = urls.first else { return }
-
-        guard network.isConnected else {
-            errorMessage = "No internet connection"
-            showRetry = true
-            return
-        }
-
-        guard url.startAccessingSecurityScopedResource() else {
-            errorMessage = "Permission denied"
-            showRetry = true
-            return
-        }
-
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        isUploading = true
-        errorMessage = nil
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+    private var statusSection: some View {
+        Group {
             if isUploading {
-                isUploading = false
-                errorMessage = "Server timeout — please retry"
-                showRetry = true
-            }
-        }
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(Color(red: 0.55, green: 0.43, blue: 1.0))
+                    Text("Analyzing resume...")
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.04))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                )
+                .cornerRadius(14)
 
-        do {
-            let data = try Data(contentsOf: url)
-
-            let localURL = FileManager.default
-                .temporaryDirectory
-                .appendingPathComponent(UUID().uuidString + ".pdf")
-
-            try data.write(to: localURL)
-
-            selectedFileName = url.lastPathComponent
-
-            APIService.shared.uploadResume(fileURL: localURL) { uploadResult in
-
-                switch uploadResult {
-
-                case .failure(let error):
-                    isUploading = false
-                    errorMessage = error.localizedDescription
-                    showRetry = true
-
-                case .success(let resumeText):
-
-                    resumeManager.resumeURL = localURL
-                    resumeManager.resumeText = resumeText
-
-                    JobAPIService.shared.fetchJobsFromResume(
-                        fileURL: localURL,
-                        country: selectedCountry
-                    ) { result in
-
-                        isUploading = false
-
-                        switch result {
-
-                        case .success(let fetchedJobs):
-
-                            if fetchedJobs.isEmpty {
-                                errorMessage = "No jobs found for this resume"
-                                showRetry = true
-                            } else {
-                                jobs = fetchedJobs
-                                goToJobs = true
-                            }
-
-                        case .failure(let error):
-                            errorMessage = error.localizedDescription
-                            showRetry = true
+            } else if let errorMessage {
+                VStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                        Text(errorMessage)
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.45))
+                            .multilineTextAlignment(.leading)
+                    }
+                    if showRetry {
+                        Button {
+                            showRetry = false
+                            showPicker = true
+                        } label: {
+                            Text("Try Again")
+                                .font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 22)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                                            lineWidth: 0.5
+                                        )
+                                )
+                                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                                .cornerRadius(12)
                         }
                     }
                 }
-            }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.2),
+                            lineWidth: 0.5
+                        )
+                )
+                .cornerRadius(14)
 
-        } catch {
-            isUploading = false
-            errorMessage = "Failed to read file"
-            showRetry = true
+            } else if let fileName = selectedFileName {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+                    Text(fileName)
+                        .font(.system(size: 13))
+                        .foregroundColor(.white.opacity(0.5))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(
+                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.2),
+                            lineWidth: 0.5
+                        )
+                )
+                .cornerRadius(14)
+            }
         }
     }
-}
+
+    private var trustBadges: some View {
+        HStack(spacing: 0) {
+            ForEach(
+                [
+                    ("lock.shield.fill", "Secure Upload"),
+                    ("eye.slash.fill",   "No data stored"),
+                    ("doc.fill",         "PDF only")
+                ],
+                id: \.0
+            ) { icon, label in
+                HStack(spacing: 5) {
+                    Image(systemName: icon)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.22))
+                    Text(label)
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.22))
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func handleFileImport(_ result: Result<[URL], Error>) {
+
+        switch result {
+
+        case .failure:
+            errorMessage = "Couldn't open that file. Please try again."
+            showRetry = true
+
+        case .success(let urls):
+
+            guard let url = urls.first else { return }
+
+            guard network.isConnected else {
+                errorMessage = "No internet connection"
+                showRetry = true
+                return
+            }
+
+            guard url.startAccessingSecurityScopedResource() else {
+                errorMessage = "Permission denied"
+                showRetry = true
+                return
+            }
+
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            isUploading = true
+            errorMessage = nil
+
+            do {
+                let data = try Data(contentsOf: url)
+
+                let localURL = FileManager.default
+                    .temporaryDirectory
+                    .appendingPathComponent(UUID().uuidString + ".pdf")
+
+                try data.write(to: localURL)
+
+                selectedFileName = url.lastPathComponent
+
+                // 🔥 IMPORTANT: UI updates must be on main thread
+                DispatchQueue.main.async {
+                    isUploading = true
+                }
+
+                APIService.shared.uploadResume(fileURL: localURL) { uploadResult in
+
+                    DispatchQueue.main.async {
+                        isUploading = false
+
+                        switch uploadResult {
+
+                        case .failure(let error):
+                            // URL errors get a friendly message; backend validation
+                            // errors ("not a resume", etc.) are shown as-is.
+                            errorMessage = error is URLError
+                                ? JobAPIError.from(error).localizedDescription
+                                : error.localizedDescription
+                            showRetry = true
+
+                        case .success(let resumeText):
+
+                            resumeManager.resumeURL = localURL
+                            resumeManager.resumeText = resumeText
+
+                            // Matching loads on the jobs screen (skeletons, error, empty states)
+                            matchedJobs.load(resumeURL: localURL, country: selectedCountry)
+                            jobsTab = .forYou
+                            goToJobs = true
+                        }
+                    }
+                }
+
+            } catch {
+                isUploading = false
+                errorMessage = "Failed to read file"
+                showRetry = true
+            }
+        }
+    }
+
+    private struct CountryButton: View {
+        let country: CountryOption
+        let isSelected: Bool
+        let onTap: () -> Void
+
+        var body: some View {
+            Button(action: onTap) {
+                Text(country.label)
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(backgroundView)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+                    )
+                    .foregroundColor(foregroundColor)
+                    .cornerRadius(12)
+            }
+        }
+
+        private var backgroundView: some View {
+            Group {
+                if isSelected {
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
+                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.3)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                } else {
+                    Color.white.opacity(0.05)
+                }
+            }
+        }
+
+        private var foregroundColor: Color {
+            if !country.enabled {
+                return .white.opacity(0.2)
+            }
+            return isSelected ? .white : .white.opacity(0.45)
+        }
+    }
 }
 
 #Preview {
     UploadResumeView()
+        .environmentObject(ResumeManager())
+        .environmentObject(MatchedJobsViewModel())
 }
-
-
 

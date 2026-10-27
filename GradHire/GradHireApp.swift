@@ -11,6 +11,8 @@ struct GradHireApp: App {
 
     @StateObject private var bookmarks = BookmarkManager()
     @StateObject private var resumeManager = ResumeManager() // ✅ ADD
+    @StateObject private var matchedJobs = MatchedJobsViewModel()
+    @StateObject private var allJobs = AllJobsViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +21,8 @@ struct GradHireApp: App {
             }
             .environmentObject(bookmarks)
             .environmentObject(resumeManager) // ✅ ADD
+            .environmentObject(matchedJobs)
+            .environmentObject(allJobs)
         }
     }
 }

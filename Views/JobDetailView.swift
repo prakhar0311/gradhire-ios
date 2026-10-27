@@ -4,10 +4,13 @@ struct JobDetailView: View {
 
     let job: Job
 
+    @EnvironmentObject var resumeManager: ResumeManager
+    @Environment(\.dismiss) private var dismiss
+
     @State private var showFullDescription = false
     @State private var showSafari = false
-
-    // MARK: - Clean paragraph description
+    @State private var navigateToOptimize = false
+    @State private var showUploadAlert = false
 
     var cleanedDescription: String {
         job.description
@@ -17,15 +20,8 @@ struct JobDetailView: View {
     }
 
     var shortDescription: String {
-        if cleanedDescription.count <= 350 {
-            return cleanedDescription
-        }
-
-        let index = cleanedDescription.index(
-            cleanedDescription.startIndex,
-            offsetBy: 350
-        )
-
+        if cleanedDescription.count <= 350 { return cleanedDescription }
+        let index = cleanedDescription.index(cleanedDescription.startIndex, offsetBy: 350)
         return String(cleanedDescription[..<index]) + "..."
     }
 
@@ -33,10 +29,7 @@ struct JobDetailView: View {
         showFullDescription ? cleanedDescription : shortDescription
     }
 
-    // MARK: - Skills extraction (stable order)
-
     var skills: [String] {
-
         let techKeywords = [
             "AWS","Azure","Backend","Cloud","CSS","Django",
             "Docker","Frontend","Git","GraphQL","HTML",
@@ -44,9 +37,7 @@ struct JobDetailView: View {
             "MongoDB","Node.js","Python","React",
             "REST","SQL","Swift","TypeScript","React.js","Next.js"
         ]
-
         let lowerDesc = job.description.lowercased()
-
         return techKeywords
             .filter { lowerDesc.contains($0.lowercased()) }
             .sorted()
@@ -54,204 +45,338 @@ struct JobDetailView: View {
             .map { $0 }
     }
 
-    var body: some View {
+    private var scoreColor: Color {
+        switch job.matchScore {
+        case (85...100)?: return Color(red: 0.0, green: 0.83, blue: 0.67)
+        case (65..<85)?:  return Color(red: 0.98, green: 0.75, blue: 0.18)
+        default:          return Color(red: 1.0, green: 0.48, blue: 0.45)
+        }
+    }
 
+    private var scoreLabel: String {
+        switch job.matchScore {
+        case (85...100)?: return "Strong match — ready to apply"
+        case (65..<85)?:  return "Good match — minor gaps"
+        default:          return "Low match — optimize first"
+        }
+    }
+
+    var body: some View {
         ZStack {
 
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.18),
-                    Color.purple.opacity(0.12),
-                    Color.white
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .blur(radius: 80)
-            .ignoresSafeArea()
+            // Dark base
+            Color(red: 0.04, green: 0.04, blue: 0.06)
+                .ignoresSafeArea()
+
+            // Mesh gradient
+            GeometryReader { geo in
+                ZStack {
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.2, y: 0.1),
+                        startRadius: 0,
+                        endRadius: 300
+                    )
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.15),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.85, y: 0.4),
+                        startRadius: 0,
+                        endRadius: 260
+                    )
+                }
+                .frame(width: geo.size.width, height: geo.size.height * 0.55)
+                .ignoresSafeArea()
+            }
 
             ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
 
-                VStack(spacing: 24) {
+                    headerCard
+                    if !skills.isEmpty { skillsCard }
+                    descriptionCard
+                    actionButtons
 
-                    // MARK: HEADER
-
-                    VStack(spacing: 18) {
-
-                        HStack(spacing: 14) {
-
-                            Image(systemName: "building.2.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.blue)
-                                .frame(width: 54, height: 54)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .fill(Color.blue.opacity(0.12))
-                                )
-
-                            VStack(alignment: .leading, spacing: 6) {
-
-                                Text(job.title)
-                                    .font(.title3.bold())
-
-                                Text(job.company)
-                                    .foregroundColor(.gray)
-
-                                Text(job.location)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            MatchScoreRing(score: job.matchScore)
-                        }
-
-                        Text("AI Match Score \(job.matchScore)%")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                LinearGradient(
-                                    colors: [.green.opacity(0.25), .mint.opacity(0.15)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .foregroundColor(.green)
-                            .cornerRadius(20)
-                    }
-                    .padding(22)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(26)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 26)
-                            .stroke(Color.white.opacity(0.35))
-                    )
-
-                    // MARK: SKILLS
-
-                    if !skills.isEmpty {
-
-                        VStack(alignment: .leading, spacing: 14) {
-
-                            Label("Key Skills", systemImage: "star.fill")
-                                .font(.headline)
-
-                            LazyVGrid(
-                                columns: [GridItem(.adaptive(minimum: 90))],
-                                spacing: 12
-                            ) {
-
-                                ForEach(skills, id: \.self) { skill in
-                                    Text(skill)
-                                        .font(.caption.weight(.medium))
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .background(Color.blue.opacity(0.12))
-                                        .foregroundColor(.blue)
-                                        .cornerRadius(20)
-                                }
-                            }
-                        }
-                        .padding(22)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(26)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 26)
-                                .stroke(Color.white.opacity(0.35))
-                        )
-                    }
-
-                    // MARK: DESCRIPTION (Paragraph mode)
-
-                    VStack(alignment: .leading, spacing: 16) {
-
-                        Label("Job Description", systemImage: "doc.text.fill")
-                            .font(.headline)
-
-                        Text(displayDescription)
-                            .foregroundColor(.secondary)
-                            .animation(.easeInOut, value: showFullDescription)
-
-                        if cleanedDescription.count > 350 {
-
-                            Button {
-                                withAnimation(.easeInOut) {
-                                    showFullDescription.toggle()
-                                }
-                            } label: {
-                                HStack {
-                                    Spacer()
-                                    Text(showFullDescription ? "Show less" : "Read more")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                    }
-                    .padding(22)
-                    .background(.ultraThinMaterial)
-                    .cornerRadius(26)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 26)
-                            .stroke(Color.white.opacity(0.35))
-                    )
-
-                    // MARK: APPLY BUTTON (NEW)
-
-                    if let url = URL(string: job.applyURL),
-                       !job.applyURL.isEmpty {
-
-                        Button {
-                            showSafari = true
-                        } label: {
-
-                            Label("Apply / View Posting", systemImage: "arrow.up.right.square")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(
-                                    LinearGradient(
-                                        colors: [.green, .blue],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .foregroundColor(.white)
-                                .cornerRadius(22)
-                        }
-                        .sheet(isPresented: $showSafari) {
-                            SafariView(url: url)
-                        }
-                    }
-
-                    // MARK: OPTIMIZE BUTTON
-
-                    NavigationLink(destination: OptimizeResumeView(job: job)) {
-
-                        Label("Optimize Resume for this Job", systemImage: "sparkles")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .foregroundColor(.white)
-                            .cornerRadius(22)
-                    }
+                    NavigationLink(
+                        destination: OptimizeResumeView(job: job),
+                        isActive: $navigateToOptimize
+                    ) { EmptyView() }
 
                     Spacer(minLength: 40)
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(
+            Color(red: 0.04, green: 0.04, blue: 0.06),
+            for: .navigationBar
+        )
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("JOB DETAIL")
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.35))
+            }
+        }
+        .alert("Upload Your Resume", isPresented: $showUploadAlert) {
+            Button("Upload Resume") {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("GO_TO_ROOT"),
+                    object: nil
+                )
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Upload a resume to optimize it for this job.")
+        }
     }
 }
 
+// MARK: - Sections
+
+private extension JobDetailView {
+
+    var headerCard: some View {
+        glassCard {
+            VStack(spacing: 16) {
+
+                HStack(alignment: .top, spacing: 14) {
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 17, style: .continuous)
+                            .fill(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.15))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                    .stroke(
+                                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.3),
+                                        lineWidth: 0.5
+                                    )
+                            )
+                            .frame(width: 56, height: 56)
+
+                        Image(systemName: "building.2.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(job.title)
+                            .font(.system(size: 18, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(job.company)
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.45))
+
+                        Text(job.location)
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.25))
+                    }
+
+                    Spacer()
+
+                    if let matchScore = job.matchScore {
+                        DarkMatchRing(score: matchScore)
+                    }
+                }
+
+                if let postedAgo = job.postedAgoText {
+                    HStack(spacing: 6) {
+                        if let contract = job.contractLabel {
+                            DarkTag(text: contract, teal: false)
+                        }
+                        DarkTag(text: postedAgo, teal: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                // Score pill (only resume-matched jobs have a score)
+                if let matchScore = job.matchScore {
+                    HStack(spacing: 7) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(scoreColor)
+
+                        Text("AI Match \(matchScore)% — \(scoreLabel)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(scoreColor)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(scoreColor.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(scoreColor.opacity(0.25), lineWidth: 0.5)
+                    )
+                    .cornerRadius(12)
+                }
+            }
+        }
+    }
+
+    var skillsCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionLabel(title: "Key Skills", icon: "star.fill", iconColor: Color(red: 0.65, green: 0.55, blue: 0.98))
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 80), spacing: 8)],
+                    spacing: 8
+                ) {
+                    ForEach(skills, id: \.self) { skill in
+                        Text(skill)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.12))
+                            .overlay(
+                                Capsule()
+                                    .stroke(
+                                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.28),
+                                        lineWidth: 0.5
+                                    )
+                            )
+                            .clipShape(Capsule())
+                    }
+                }
+            }
+        }
+    }
+
+    var descriptionCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionLabel(
+                    title: "Job Description",
+                    icon: "doc.text.fill",
+                    iconColor: Color(red: 0.39, green: 0.22, blue: 1.0)
+                )
+
+                Text(displayDescription)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.45))
+                    .lineSpacing(4)
+
+                if cleanedDescription.count > 350 {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            showFullDescription.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text(showFullDescription ? "Show less" : "Read more")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                            Image(systemName: showFullDescription ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    var actionButtons: some View {
+        VStack(spacing: 10) {
+
+            // Apply button
+            if let url = URL(string: job.applyURL), !job.applyURL.isEmpty {
+                Button { showSafari = true } label: {
+                    HStack {
+                        Spacer()
+                        Image(systemName: "arrow.up.right.square.fill")
+                            .font(.system(size: 15))
+                        Text("Apply / View Posting")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.vertical, 15)
+                    .background(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                    )
+                    .foregroundColor(.white.opacity(0.8))
+                    .cornerRadius(16)
+                }
+                .sheet(isPresented: $showSafari) {
+                    SafariView(url: url)
+                }
+            }
+
+            // Optimize button
+            Button {
+                if resumeManager.resumeText == nil || resumeManager.resumeText!.isEmpty {
+                    showUploadAlert = true
+                } else {
+                    navigateToOptimize = true
+                }
+            } label: {
+                HStack {
+                    Spacer()
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Optimize Resume for this Job")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                    Spacer()
+                }
+                .padding(.vertical, 15)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0),
+                            Color(red: 0.0, green: 0.83, blue: 0.67)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundColor(.white)
+                .cornerRadius(16)
+                .shadow(
+                    color: Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                    radius: 16, x: 0, y: 6
+                )
+            }
+        }
+    }
+
+    // MARK: Helpers
+
+    @ViewBuilder
+    func glassCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+            .cornerRadius(20)
+    }
+
+    func sectionLabel(title: String, icon: String, iconColor: Color) -> some View {
+        Label(title, systemImage: icon)
+            .font(.system(size: 10, weight: .semibold))
+            .tracking(1.2)
+            .foregroundColor(.white.opacity(0.3))
+            .textCase(.uppercase)
+    }
+}
 

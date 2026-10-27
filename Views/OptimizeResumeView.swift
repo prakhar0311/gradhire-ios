@@ -1,5 +1,8 @@
-
 import SwiftUI
+
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
 
 struct OptimizeResumeView: View {
 
@@ -11,481 +14,531 @@ struct OptimizeResumeView: View {
     @State private var isLoading = false
     @State private var isDownloading = false
     @State private var errorMessage: String?
-
+    @State private var downloadErrorMessage: String?
     @State private var showResults = false
-    @State private var showShareSheet = false
     @State private var downloadedFileURL: URL?
 
     var body: some View {
         ZStack {
+            // Dark background
+            Color(red: 0.04, green: 0.04, blue: 0.06)
+                .ignoresSafeArea()
 
-            LinearGradient(
-                colors: [
-                    Color.blue.opacity(0.18),
-                    Color.purple.opacity(0.14),
-                    Color.white
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .blur(radius: 90)
-            .ignoresSafeArea()
+            // Mesh gradient
+            GeometryReader { geo in
+                ZStack {
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.28),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.25, y: 0.1),
+                        startRadius: 0,
+                        endRadius: 280
+                    )
+                    RadialGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.18),
+                            Color.clear
+                        ],
+                        center: .init(x: 0.85, y: 0.35),
+                        startRadius: 0,
+                        endRadius: 240
+                    )
+                }
+                .frame(width: geo.size.width, height: geo.size.height * 0.6)
+                .ignoresSafeArea()
+            }
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 26) {
+                VStack(spacing: 14) {
 
-                    headerSection
+                    topBar
+                    heroSection
                     targetRoleCard
 
-                    if isLoading {
-                        loadingSection
+                    if isLoading && result == nil {
+                        loadingCard
                     }
 
-                    if let errorMessage {
-                        errorSection(message: errorMessage)
+                    if let errorMessage, result == nil {
+                        errorCard(message: errorMessage)
                     }
 
                     if let result = result, showResults {
-                        resultsSection(result: result)
+                        if job.matchScore != nil { readinessCard }
+                        missingSkillsCard(result: result)
+                        bulletsCard(result: result)
+                        keywordsCard(result: result)
+                        actionButtons
                     }
 
                     Spacer(minLength: 40)
                 }
-                .padding()
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
             }
         }
         .onAppear {
-            if result == nil {
-                optimize()
-            }
+            if result == nil { optimize() }
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = downloadedFileURL {
-                ShareSheet(items: [url])
-            }
+        .sheet(item: $downloadedFileURL) { url in
+            ShareSheet(items: [url])
         }
     }
 }
 
-//////////////////////////////////////////////////////////
-// MARK: API Logic
-//////////////////////////////////////////////////////////
+// MARK: - Sub-views
+
+private extension OptimizeResumeView {
+
+    var topBar: some View {
+        HStack {
+            // Back button handled by NavigationView,
+            // but keep a label for context
+            Spacer()
+            Text("AI OPTIMIZATION")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.5)
+                .foregroundColor(.white.opacity(0.35))
+            Spacer()
+        }
+        .padding(.bottom, 4)
+    }
+
+    var heroSection: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.39, green: 0.22, blue: 1.0),
+                                Color(red: 0.0, green: 0.83, blue: 0.67)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 64, height: 64)
+                    .shadow(
+                        color: Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
+                        radius: 20, x: 0, y: 8
+                    )
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+
+            Text("Resume Optimized")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+
+            Text("Tailored for \(job.company)")
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.4))
+        }
+        .padding(.bottom, 6)
+    }
+
+    var targetRoleCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Target Role", systemImage: "briefcase.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(.white.opacity(0.35))
+                    .textCase(.uppercase)
+
+                Text(job.title)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+
+                Text(job.company)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.45))
+
+                Text(job.location)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.28))
+            }
+        }
+    }
+
+    var readinessCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Label("Resume Readiness", systemImage: "checkmark.seal.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.2)
+                            .foregroundColor(.white.opacity(0.35))
+                            .textCase(.uppercase)
+
+                        Text("\(job.matchScore ?? 0)%")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(scoreColor)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("Match score")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.3))
+                        Text(scoreLabel)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(scoreColor)
+                    }
+                    .padding(.top, 4)
+                }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 99)
+                            .fill(Color.white.opacity(0.08))
+                            .frame(height: 5)
+
+                        RoundedRectangle(cornerRadius: 99)
+                            .fill(
+                                LinearGradient(
+                                    colors: [scoreColor, Color(red: 0.39, green: 0.22, blue: 1.0)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geo.size.width * CGFloat(job.matchScore ?? 0) / 100, height: 5)
+                    }
+                }
+                .frame(height: 5)
+            }
+        }
+    }
+
+    func missingSkillsCard(result: ResumeOptimizationResponse) -> some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(
+                    title: "Missing Skills",
+                    icon: "exclamationmark.triangle.fill",
+                    color: Color(red: 1.0, green: 0.48, blue: 0.21)
+                )
+                FlowChips(
+                    items: result.missingSkills,
+                    bgColor: Color(red: 1.0, green: 0.48, blue: 0.21).opacity(0.12),
+                    borderColor: Color(red: 1.0, green: 0.48, blue: 0.21).opacity(0.3),
+                    textColor: Color(red: 1.0, green: 0.68, blue: 0.45)
+                )
+            }
+        }
+    }
+
+    func bulletsCard(result: ResumeOptimizationResponse) -> some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(
+                    title: "Improved Bullets",
+                    icon: "doc.text.fill",
+                    color: Color(red: 0.39, green: 0.22, blue: 1.0)
+                )
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(result.improvedBullets.prefix(5)), id: \.self) { bullet in
+                        HStack(alignment: .top, spacing: 10) {
+                            Circle()
+                                .fill(Color(red: 0.39, green: 0.22, blue: 1.0))
+                                .frame(width: 5, height: 5)
+                                .padding(.top, 6)
+                            Text(bullet)
+                                .font(.system(size: 13))
+                                .foregroundColor(.white.opacity(0.55))
+                                .lineSpacing(3)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func keywordsCard(result: ResumeOptimizationResponse) -> some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionHeader(
+                    title: "ATS Keywords",
+                    icon: "tag.fill",
+                    color: Color(red: 0.65, green: 0.55, blue: 0.98)
+                )
+                FlowChips(
+                    items: result.atsKeywords,
+                    bgColor: Color(red: 0.65, green: 0.55, blue: 0.98).opacity(0.12),
+                    borderColor: Color(red: 0.65, green: 0.55, blue: 0.98).opacity(0.3),
+                    textColor: Color(red: 0.77, green: 0.69, blue: 0.99)
+                )
+            }
+        }
+    }
+
+    var actionButtons: some View {
+        VStack(spacing: 10) {
+            Button(action: downloadResume) {
+                HStack {
+                    Spacer()
+                    if isDownloading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Image(systemName: "arrow.down.doc.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Download Optimized Resume")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 16)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.39, green: 0.22, blue: 1.0),
+                            Color(red: 0.0, green: 0.83, blue: 0.67)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundColor(.white)
+                .cornerRadius(16)
+            }
+            .disabled(isDownloading || isLoading)
+
+            if let downloadErrorMessage {
+                Text(downloadErrorMessage)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                    .multilineTextAlignment(.center)
+            }
+
+            if let url = URL(string: job.applyURL) {
+                Link(destination: url) {
+                    HStack {
+                        Spacer()
+                        Text("Apply Now")
+                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        Image(systemName: "arrow.up.right.square.fill")
+                            .font(.system(size: 14))
+                        Spacer()
+                    }
+                    .padding(.vertical, 15)
+                    .background(Color.white.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                    )
+                    .foregroundColor(.white.opacity(0.8))
+                    .cornerRadius(16)
+                }
+            }
+        }
+    }
+
+    var loadingCard: some View {
+        glassCard {
+            VStack(spacing: 16) {
+                ProgressView()
+                    .tint(Color(red: 0.39, green: 0.22, blue: 1.0))
+                    .scaleEffect(1.2)
+                Text("Analyzing with AI...")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+                Text("Matching skills • Optimizing bullets • ATS tuning")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.3))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
+    }
+
+    func errorCard(message: String) -> some View {
+        glassCard {
+            VStack(spacing: 14) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                Text(message)
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+                Button("Retry Optimization") {
+                    optimize()
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .padding(.horizontal, 22)
+                .padding(.vertical, 10)
+                .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4), lineWidth: 0.5)
+                )
+                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                .cornerRadius(12)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+    }
+
+    // MARK: Helpers
+
+    @ViewBuilder
+    func glassCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+            .background(Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.white.opacity(0.09), lineWidth: 0.5)
+            )
+            .cornerRadius(20)
+    }
+
+    func sectionHeader(title: String, icon: String, color: Color) -> some View {
+        Label(title, systemImage: icon)
+            .font(.system(size: 10, weight: .semibold))
+            .tracking(1.2)
+            .foregroundColor(.white.opacity(0.35))
+            .textCase(.uppercase)
+    }
+
+    var scoreColor: Color {
+        switch job.matchScore {
+        case (85...100)?: return Color(red: 0.0, green: 0.83, blue: 0.67)
+        case (65..<85)?:  return Color(red: 0.98, green: 0.75, blue: 0.18)
+        default:          return Color(red: 1.0, green: 0.48, blue: 0.45)
+        }
+    }
+
+    var scoreLabel: String {
+        switch job.matchScore {
+        case (85...100)?: return "Strong match"
+        case (65..<85)?:  return "Good match"
+        default:          return "Low — optimize first"
+        }
+    }
+}
+
+// MARK: - API Logic
 
 private extension OptimizeResumeView {
 
     func optimize() {
-
-        guard network.isConnected else {
-            errorMessage = "No internet connection"
-            return
+        guard network.isConnected else { errorMessage = "No internet connection"; return }
+        guard let resumeText = resumeManager.resumeText, !resumeText.isEmpty else {
+            errorMessage = "Resume not found"; return
         }
-
-        guard let resumeText = resumeManager.resumeText,
-              !resumeText.isEmpty else {
-            errorMessage = "Resume not found"
-            return
-        }
-
-        isLoading = true
-        errorMessage = nil
-        showResults = false
-
-        // Timeout protection
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
-            if isLoading {
-                isLoading = false
-                errorMessage = "Optimization timed out — please retry"
-            }
-        }
+        isLoading = true; errorMessage = nil; showResults = false; result = nil
 
         APIService.shared.optimizeResume(
             resumeText: resumeText,
             jobTitle: job.title,
             jobDescription: job.description
-        ) { result in
-
-            isLoading = false
-
-            switch result {
+        ) { apiResult in
+            self.isLoading = false
+            switch apiResult {
             case .success(let data):
-
-                if data.improvedBullets.isEmpty &&
-                    data.missingSkills.isEmpty {
-                    errorMessage = "AI returned empty results"
-                    return
+                guard !data.improvedBullets.isEmpty || !data.missingSkills.isEmpty else {
+                    self.errorMessage = "AI returned empty results"; return
                 }
-
-                self.result = data
-                self.showResults = true
-
+                self.errorMessage = nil; self.result = data; self.showResults = true
             case .failure(let error):
-                errorMessage = error.localizedDescription
+                self.errorMessage = error.localizedDescription
             }
         }
     }
 
     func downloadResume() {
-
-        guard network.isConnected else {
-            errorMessage = "No internet connection"
-            return
-        }
-
+        guard network.isConnected else { downloadErrorMessage = "No internet connection"; return }
         guard let resumeURL = resumeManager.resumeURL else {
-            errorMessage = "No resume uploaded"
-            return
+            downloadErrorMessage = "No resume uploaded"; return
         }
-
-        isDownloading = true
-        errorMessage = nil
+        isDownloading = true; downloadErrorMessage = nil
 
         APIService.shared.downloadOptimizedResume(
             resumeURL: resumeURL,
             jobDescription: job.description
         ) { result in
-
-            isDownloading = false
-
-            switch result {
-
-            case .success(let url):
-                downloadedFileURL = url
-                showShareSheet = true
-
-            case .failure(let error):
-                errorMessage = error.localizedDescription
-            }
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////
-// MARK: UI Sections
-//////////////////////////////////////////////////////////
-
-private extension OptimizeResumeView {
-
-    var headerSection: some View {
-        VStack(spacing: 14) {
-
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 60, height: 60)
-
-                Image(systemName: "sparkles")
-                    .font(.title2)
-                    .foregroundColor(.white)
-            }
-
-            Text("AI Resume Optimization")
-                .font(.title2.bold())
-
-            Text("Tailored for \(job.company)")
-                .font(.subheadline)
-                .foregroundColor(.gray)
-        }
-        .padding(.top)
-    }
-
-    var targetRoleCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            Label("Target Role", systemImage: "briefcase.fill")
-                .font(.headline)
-                .foregroundColor(.blue)
-
-            Text(job.title)
-                .font(.title3.bold())
-
-            Text(job.company)
-                .foregroundColor(.gray)
-
-            Text(job.location)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-
-    var loadingSection: some View {
-        VStack(spacing: 18) {
-
-            ProgressView()
-                .scaleEffect(1.4)
-
-            Text("Analyzing with AI...")
-                .foregroundColor(.gray)
-
-            Text("Matching skills • Optimizing bullets • ATS tuning")
-                .font(.caption)
-                .foregroundColor(.gray.opacity(0.7))
-        }
-        .padding(40)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-
-    func errorSection(message: String) -> some View {
-        VStack(spacing: 12) {
-
-            Text(message)
-                .foregroundColor(.red)
-                .multilineTextAlignment(.center)
-
-            Button("Retry Optimization") {
-                optimize()
-            }
-            .font(.headline)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 10)
-            .background(Color.blue.opacity(0.15))
-            .cornerRadius(16)
-        }
-        .padding(22)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-
-    func resultsSection(result: ResumeOptimizationResponse) -> some View {
-        VStack(spacing: 20) {
-
-            ResumeReadinessCard(matchScore: job.matchScore)
-
-            PremiumSection(
-                title: "Missing Skills",
-                icon: "exclamationmark.triangle.fill",
-                color: .orange,
-                items: result.missingSkills
-            )
-
-            ImprovedBulletsSection(
-                //bullets: result.improvedBullets
-                bullets: Array(result.improvedBullets.prefix(5))
-            )
-
-            PremiumSection(
-                title: "ATS Keywords",
-                icon: "tag.fill",
-                color: .purple,
-                items: result.atsKeywords
-            )
-
-            downloadButton
-            applyButton
-        }
-    }
-
-    var downloadButton: some View {
-        Button(action: downloadResume) {
-
-            HStack {
-                Spacer()
-
-                if isDownloading {
-                    ProgressView()
-                        .tint(.white)
-                } else {
-                    Label(
-                        "Download Optimized Resume",
-                        systemImage: "arrow.down.doc.fill"
-                    )
-                    .font(.headline)
-                }
-
-                Spacer()
-            }
-            .padding()
-            .background(
-                LinearGradient(
-                    colors: [.green, .blue],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .foregroundColor(.white)
-            .cornerRadius(22)
-            .shadow(radius: 8)
-        }
-        .disabled(isDownloading || isLoading)
-    }
-
-    var applyButton: some View {
-        Group {
-            if let url = URL(string: job.applyURL) {
-                Link(destination: url) {
-                    HStack {
-                        Spacer()
-                        Label(
-                            "Apply Now",
-                            systemImage: "arrow.up.right.square.fill"
-                        )
-                        Spacer()
-                    }
-                    .padding()
-                    .background(
-                        LinearGradient(
-                            colors: [.blue, .purple],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .foregroundColor(.white)
-                    .cornerRadius(22)
+            DispatchQueue.main.async {
+                self.isDownloading = false
+                switch result {
+                case .success(let url):
+                    self.downloadErrorMessage = nil
+                    self.downloadedFileURL = url
+                case .failure:
+                    self.downloadErrorMessage = "Could not download the updated resume. Tap download to try again."
                 }
             }
         }
     }
 }
 
-//////////////////////////////////////////////////////////
-// MARK: Resume Readiness Card
-//////////////////////////////////////////////////////////
+// MARK: - Flow Chips
 
-struct ResumeReadinessCard: View {
-
-    let matchScore: Int
-
-    var message: String {
-        switch matchScore {
-        case 85...100:
-            return "Strong match — you’re ready to apply"
-        case 65..<85:
-            return "Good match — minor improvements recommended"
-        default:
-            return "Low match — optimize before applying"
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-
-            Label("Resume Readiness", systemImage: "checkmark.seal.fill")
-                .font(.headline)
-                .foregroundColor(.green)
-
-            ProgressView(value: Double(matchScore), total: 100)
-                .tint(.green)
-
-            Text("\(matchScore)% • \(message)")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-}
-
-//////////////////////////////////////////////////////////
-// MARK: Improved Bullets Section
-//////////////////////////////////////////////////////////
-
-struct ImprovedBulletsSection: View {
-
-    let bullets: [String]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-
-            Label("Improved Resume Bullets", systemImage: "doc.text.fill")
-                .font(.headline)
-                .foregroundColor(.blue)
-
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(bullets, id: \.self) { bullet in
-                    HStack(alignment: .top, spacing: 10) {
-                        Circle()
-                            .fill(Color.blue)
-                            .frame(width: 6, height: 6)
-                            .padding(.top, 6)
-
-                        Text(bullet)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-}
-
-//////////////////////////////////////////////////////////
-// MARK: Premium Section
-//////////////////////////////////////////////////////////
-
-struct PremiumSection: View {
-
-    let title: String
-    let icon: String
-    let color: Color
+struct FlowChips: View {
     let items: [String]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .foregroundColor(color)
-
-            FlowLayout(items: items) { item in
-                Text(item)
-                    .font(.caption)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(color.opacity(0.15))
-                    .cornerRadius(14)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
-        .background(.ultraThinMaterial)
-        .cornerRadius(24)
-    }
-}
-
-//////////////////////////////////////////////////////////
-// MARK: Flow Layout
-//////////////////////////////////////////////////////////
-
-struct FlowLayout<Data: RandomAccessCollection, Content: View>: View
-where Data.Element: Hashable {
-
-    let items: Data
-    let content: (Data.Element) -> Content
-
-    init(
-        items: Data,
-        @ViewBuilder content: @escaping (Data.Element) -> Content
-    ) {
-        self.items = items
-        self.content = content
-    }
+    let bgColor: Color
+    let borderColor: Color
+    let textColor: Color
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 90), spacing: 10)],
-            spacing: 10
+            columns: [GridItem(.adaptive(minimum: 80), spacing: 8)],
+            spacing: 8
         ) {
             ForEach(items, id: \.self) { item in
-                content(item)
+                Text(item)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(textColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(bgColor)
+                    .overlay(
+                        Capsule()
+                            .stroke(borderColor, lineWidth: 0.5)
+                    )
+                    .clipShape(Capsule())
             }
         }
     }
 }
 
+// MARK: - Resume Readiness (kept for compatibility)
 
+struct ResumeReadinessCard: View {
+    let matchScore: Int
+    var body: some View { EmptyView() }
+}
+
+// MARK: - Legacy stubs (no longer used but kept to avoid breaking other files)
+
+struct ImprovedBulletsSection: View {
+    let bullets: [String]
+    var body: some View { EmptyView() }
+}
+
+struct PremiumSection: View {
+    let title: String; let icon: String; let color: Color; let items: [String]
+    var body: some View { EmptyView() }
+}
+
+struct FlowLayout<Data: RandomAccessCollection, Content: View>: View where Data.Element: Hashable {
+    let items: Data; let content: (Data.Element) -> Content
+    init(items: Data, @ViewBuilder content: @escaping (Data.Element) -> Content) {
+        self.items = items; self.content = content
+    }
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 10)], spacing: 10) {
+            ForEach(items, id: \.self) { item in content(item) }
+        }
+    }
+}
 

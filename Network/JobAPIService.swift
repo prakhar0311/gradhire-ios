@@ -1,28 +1,78 @@
 import Foundation
 
+// MARK: - Errors
+
+enum JobAPIError: LocalizedError {
+    case offline
+    case timedOut
+    case server(String)
+    case invalidResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .offline:
+            return "You're offline. Check your connection and try again."
+        case .timedOut:
+            return "The server is taking too long to respond. Please try again."
+        case .server(let message):
+            return message
+        case .invalidResponse:
+            return "We couldn't read the job results. Please try again."
+        }
+    }
+
+    static func from(_ error: Error) -> JobAPIError {
+        if let apiError = error as? JobAPIError { return apiError }
+
+        switch (error as? URLError)?.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+            return .offline
+        case .timedOut:
+            return .timedOut
+        case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
+            return .server("Can't reach GradHire's server right now. Please try again in a moment.")
+        default:
+            return .server("Could not load jobs. Please try again.")
+        }
+    }
+}
+
+// MARK: - Response Models
+
+struct NewGradJobsPage: Decodable {
+    let jobs: [Job]
+    let page: Int
+    let hasMore: Bool
+}
+
+// MARK: - Service
+
 final class JobAPIService {
 
     static let shared = JobAPIService()
     private init() {}
 
+    // 20s per request; 45s total leaves room for a backend cold start.
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 20
+        config.timeoutIntervalForResource = 45
+        config.waitsForConnectivity = false
+        return URLSession(configuration: config)
+    }()
+
     // MARK: - Fetch Jobs From Resume (Multipart)
+
     func fetchJobsFromResume(
         fileURL: URL,
-        country: String = "in",
-        completion: @escaping (Result<[Job], Error>) -> Void
-    ) {
+        country: String = "in"
+    ) async throws -> [Job] {
 
-        let urlString = "\(APIConstants.jobsFromResume)?country=\(country)"
-        guard let url = URL(string: urlString) else {
-            completion(.failure(URLError(.badURL)))
-            return
+        guard let url = URL(string: "\(APIConstants.jobsFromResume)?country=\(country)") else {
+            throw JobAPIError.invalidResponse
         }
 
-        var request = URLRequest(
-            url: url,
-            cachePolicy: .reloadIgnoringLocalCacheData,
-            timeoutInterval: 60
-        )
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.httpMethod = "POST"
 
         let boundary = UUID().uuidString
@@ -30,15 +80,6 @@ final class JobAPIService {
             "multipart/form-data; boundary=\(boundary)",
             forHTTPHeaderField: "Content-Type"
         )
-
-        var body = Data()
-
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"resume.pdf\"\r\n"
-                .data(using: .utf8)!
-        )
-        body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
 
         // 🔐 CRITICAL: Security-scoped access (REAL DEVICE FIX)
         let canAccess = fileURL.startAccessingSecurityScopedResource()
@@ -49,70 +90,70 @@ final class JobAPIService {
         }
 
         guard let fileData = try? Data(contentsOf: fileURL) else {
-            completion(.failure(URLError(.fileDoesNotExist)))
-            return
+            throw JobAPIError.server("Couldn't read your resume file. Please upload it again.")
         }
 
+        var body = Data()
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append(
+            "Content-Disposition: form-data; name=\"file\"; filename=\"resume.pdf\"\r\n"
+                .data(using: .utf8)!
+        )
+        body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
         body.append(fileData)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        return try await send(request, as: [Job].self)
+    }
 
-            if let error = error {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-                return
+    // MARK: - Fetch All New Grad Jobs (Paginated)
+
+    func fetchNewGradJobs(
+        country: String = "in",
+        page: Int
+    ) async throws -> NewGradJobsPage {
+
+        guard let url = URL(string: "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)") else {
+            throw JobAPIError.invalidResponse
+        }
+
+        return try await send(URLRequest(url: url), as: NewGradJobsPage.self)
+    }
+
+    // MARK: - Shared Request Handling
+
+    private func send<T: Decodable>(_ request: URLRequest, as type: T.Type) async throws -> T {
+
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            throw JobAPIError.from(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw JobAPIError.invalidResponse
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            // Forward FastAPI's "detail" message when it's a plain string
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let detail = json["detail"] as? String {
+                throw JobAPIError.server(detail)
             }
+            throw JobAPIError.server("Could not load jobs (error \(http.statusCode)). Please try again.")
+        }
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                DispatchQueue.main.async {
-                    completion(.failure(URLError(.badServerResponse)))
-                }
-                return
-            }
-
-            guard let data = data else {
-                DispatchQueue.main.async {
-                    completion(.failure(URLError(.zeroByteResource)))
-                }
-                return
-            }
-
-            if httpResponse.statusCode >= 400 {
-
-                var backendMessage = "Upload failed"
-
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let detail = json["detail"] as? String {
-                    backendMessage = detail
-                }
-
-                DispatchQueue.main.async {
-                    completion(.failure(NSError(
-                        domain: "Backend",
-                        code: httpResponse.statusCode,
-                        userInfo: [NSLocalizedDescriptionKey: backendMessage]
-                    )))
-                }
-                return
-            }
-
-
-            do {
-                let jobs = try JSONDecoder().decode([Job].self, from: data)
-                DispatchQueue.main.async {
-                    completion(.success(jobs))
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    completion(.failure(error))
-                }
-            }
-
-        }.resume()
+        do {
+            return try Job.decoder.decode(T.self, from: data)
+        } catch {
+            throw JobAPIError.invalidResponse
+        }
     }
 }
-
