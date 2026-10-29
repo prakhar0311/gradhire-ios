@@ -44,12 +44,13 @@
 		F4A1B07A2FC0000100A1B0C1 /* DashboardCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0792FC0000100A1B0C1 /* DashboardCache.swift */; };
 		F4A1B07C2FC0000100A1B0C1 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B07B2FC0000100A1B0C1 /* DashboardViewModel.swift */; };
 		F4A1B07E2FC0000100A1B0C1 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B07D2FC0000100A1B0C1 /* HomeView.swift */; };
+		F4A1B0812FC0000100A1B0C1 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0802FC0000100A1B0C1 /* AppTheme.swift */; };
+		F4A1B0832FC0000100A1B0C1 /* AppBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */; };
+		F4A1B0852FC0000100A1B0C1 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0842FC0000100A1B0C1 /* AppSession.swift */; };
+		F4A1B0872FC0000100A1B0C1 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0862FC0000100A1B0C1 /* WelcomeView.swift */; };
 		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
 		F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */; };
 		F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */; };
-		F4DF0DCD2F2E1CB000961C4A /* EmptyJobResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */; };
-		F4DF0DCF2F2E1F7D00961C4A /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */; };
-		F4DF0DD22F2E2ABB00961C4A /* SkeletonJobCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */; };
 		F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */; };
 		F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F06FBE2F2F3FBA0056BD2B /* JobAPIService.swift */; };
 /* End PBXBuildFile section */
@@ -112,12 +113,13 @@
 		F4A1B0792FC0000100A1B0C1 /* DashboardCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCache.swift; sourceTree = "<group>"; };
 		F4A1B07B2FC0000100A1B0C1 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		F4A1B07D2FC0000100A1B0C1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		F4A1B0802FC0000100A1B0C1 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
+		F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackground.swift; sourceTree = "<group>"; };
+		F4A1B0842FC0000100A1B0C1 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		F4A1B0862FC0000100A1B0C1 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkManager.swift; sourceTree = "<group>"; };
-		F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyJobResultView.swift; sourceTree = "<group>"; };
-		F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorStateView.swift; sourceTree = "<group>"; };
-		F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonJobCard.swift; sourceTree = "<group>"; };
 		F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
 		F4F06FBE2F2F3FBA0056BD2B /* JobAPIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobAPIService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -215,8 +217,8 @@
 			children = (
 				F4A1B0682FC0000100A1B0C1 /* Account */,
 				F4DF0DD02F2E2A9B00961C4A /* Components */,
-				F4DF0DCB2F2E1C9000961C4A /* States */,
 				F4A1B07F2FC0000100A1B0C1 /* Home */,
+				F4A1B0882FC0000100A1B0C1 /* Welcome */,
 				F4DF0DC62F2DEC1E00961C4A /* Tracker */,
 				F40D62552F28DDC4004651FB /* UploadResumeView.swift */,
 				F40D62592F28E065004651FB /* JobListView.swift */,
@@ -250,6 +252,7 @@
 				F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */,
 				F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */,
 				F4A1B0752FC0000100A1B0C1 /* LocalStore.swift */,
+				F4A1B0842FC0000100A1B0C1 /* AppSession.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -311,6 +314,14 @@
 			path = Home;
 			sourceTree = "<group>";
 		};
+		F4A1B0882FC0000100A1B0C1 /* Welcome */ = {
+			isa = PBXGroup;
+			children = (
+				F4A1B0862FC0000100A1B0C1 /* WelcomeView.swift */,
+			);
+			path = Welcome;
+			sourceTree = "<group>";
+		};
 		F4DF0DC12F2DDD5300961C4A /* Managers */ = {
 			isa = PBXGroup;
 			children = (
@@ -330,20 +341,12 @@
 			path = Tracker;
 			sourceTree = "<group>";
 		};
-		F4DF0DCB2F2E1C9000961C4A /* States */ = {
-			isa = PBXGroup;
-			children = (
-				F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */,
-				F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */,
-			);
-			path = States;
-			sourceTree = "<group>";
-		};
 		F4DF0DD02F2E2A9B00961C4A /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				F4A1B0802FC0000100A1B0C1 /* AppTheme.swift */,
+				F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */,
 				F4A1B0072FC0000100A1B0C1 /* JobsFilterBar.swift */,
-				F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */,
 				F47760112F3A250700FFE828 /* ShareSheet.swift */,
 			);
 			path = Components;
@@ -515,6 +518,10 @@
 				F4A1B00A2FC0000100A1B0C1 /* OptimizeResumeViewModel.swift in Sources */,
 				F4A1B0392FC0000100A1B0C1 /* ApplicationRepository.swift in Sources */,
 				F4A1B0672FC0000100A1B0C1 /* AccountView.swift in Sources */,
+				F4A1B0812FC0000100A1B0C1 /* AppTheme.swift in Sources */,
+				F4A1B0832FC0000100A1B0C1 /* AppBackground.swift in Sources */,
+				F4A1B0852FC0000100A1B0C1 /* AppSession.swift in Sources */,
+				F4A1B0872FC0000100A1B0C1 /* WelcomeView.swift in Sources */,
 				F4A1B0762FC0000100A1B0C1 /* LocalStore.swift in Sources */,
 				F4A1B0782FC0000100A1B0C1 /* DashboardRepository.swift in Sources */,
 				F4A1B07A2FC0000100A1B0C1 /* DashboardCache.swift in Sources */,
@@ -536,7 +543,6 @@
 				F4A1B0082FC0000100A1B0C1 /* JobsFilterBar.swift in Sources */,
 				F4A1B0062FC0000100A1B0C1 /* JobFilters.swift in Sources */,
 				F40D625E2F28E23A004651FB /* OptimizeResumeView.swift in Sources */,
-				F4DF0DCD2F2E1CB000961C4A /* EmptyJobResultView.swift in Sources */,
 				F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */,
 				F40D62602F28E600004651FB /* APIService.swift in Sources */,
 				F47760142F3A5D7800FFE828 /* ResumeManager.swift in Sources */,
@@ -549,8 +555,6 @@
 				F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */,
 				F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */,
 				F47760122F3A250700FFE828 /* ShareSheet.swift in Sources */,
-				F4DF0DD22F2E2ABB00961C4A /* SkeletonJobCard.swift in Sources */,
-				F4DF0DCF2F2E1F7D00961C4A /* ErrorStateView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

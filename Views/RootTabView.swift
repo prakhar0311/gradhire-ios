@@ -3,7 +3,7 @@ import Combine
 
 // MARK: - App Router
 
-enum AppTab: Hashable {
+enum AppTab: Hashable, CaseIterable {
     case home
     case jobs
     case tracker
@@ -17,6 +17,34 @@ final class AppRouter: ObservableObject {
     @Published var jobsTab: JobsTab = .forYou
     @Published var trackerFilter: ApplicationStatus?
     @Published var country = "in"
+
+    /// Changing a tab's id rebuilds its navigation stack, i.e. pops it to
+    /// its first screen.
+    @Published private(set) var stackIDs: [AppTab: UUID] = [:]
+
+    func stackID(_ tab: AppTab) -> UUID {
+        stackIDs[tab] ?? Self.defaultID
+    }
+
+    private static let defaultID = UUID()
+
+    func popToRoot(_ tab: AppTab) {
+        stackIDs[tab] = UUID()
+    }
+
+    /// Switches tab and shows that tab's first screen.
+    func show(_ tab: AppTab) {
+        popToRoot(tab)
+        self.tab = tab
+    }
+
+    /// Fresh navigation for a new session.
+    func reset(for phase: AppSession.Phase) {
+        stackIDs = [:]
+        trackerFilter = nil
+        jobsTab = .forYou
+        tab = phase == .signedIn ? .home : .resume
+    }
 }
 
 // MARK: - Root Tab View
@@ -24,76 +52,95 @@ final class AppRouter: ObservableObject {
 struct RootTabView: View {
 
     @EnvironmentObject private var router: AppRouter
+    @EnvironmentObject private var session: AppSession
     @StateObject private var network = NetworkMonitor.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         tabs
             .modifier(TrackerLifecycle(scenePhase: scenePhase, isConnected: network.isConnected))
-            .modifier(TrackerPrompts())
+            .modifier(ApplyPrompt())
+    }
+
+    /// Tapping the current tab goes back to its first screen. Guests tapping
+    /// Tracker get the sign-in sheet and stay where they are.
+    private var selection: Binding<AppTab> {
+        Binding(
+            get: { router.tab },
+            set: { newTab in
+                if newTab == .tracker && session.isGuest {
+                    session.requireAccount(.tracker)
+                } else if newTab == router.tab {
+                    router.popToRoot(newTab)
+                } else {
+                    router.tab = newTab
+                }
+            }
+        )
     }
 
     private var tabs: some View {
-        TabView(selection: $router.tab) {
-            NavigationStack {
-                HomeView()
+        TabView(selection: selection) {
+            if session.isSignedIn {
+                NavigationStack {
+                    HomeView()
+                }
+                .id(router.stackID(.home))
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(AppTab.home)
             }
-            .tabItem { Label("Home", systemImage: "house.fill") }
-            .tag(AppTab.home)
+
+            if session.isGuest {
+                resumeTab
+            }
 
             NavigationStack {
                 JobListView(country: router.country, selectedTab: $router.jobsTab)
             }
+            .id(router.stackID(.jobs))
             .tabItem { Label("Jobs", systemImage: "briefcase.fill") }
             .tag(AppTab.jobs)
 
             NavigationStack {
                 TrackerView()
             }
-            .tabItem { Label("Tracker", systemImage: "checklist") }
+            .id(router.stackID(.tracker))
+            .tabItem {
+                Label("Tracker", systemImage: session.isGuest ? "lock.fill" : "checklist")
+            }
             .tag(AppTab.tracker)
 
-            NavigationStack {
-                UploadResumeView()
+            if session.isSignedIn {
+                resumeTab
             }
-            .tabItem { Label("Resume", systemImage: "doc.text.fill") }
-            .tag(AppTab.resume)
         }
-        .tint(Color(red: 0.65, green: 0.55, blue: 0.98))
+        .tint(AppTheme.lavender)
         .preferredColorScheme(.dark)
+    }
+
+    private var resumeTab: some View {
+        NavigationStack {
+            UploadResumeView()
+        }
+        .id(router.stackID(.resume))
+        .tabItem { Label("Resume", systemImage: "doc.text.fill") }
+        .tag(AppTab.resume)
     }
 }
 
 // MARK: - Tracker Lifecycle
 
-/// Keeps the tracker cache in step with who is signed in, and syncs when the
-/// app comes back or the connection returns.
+/// Syncs the tracker when the app comes back or the connection returns, and
+/// asks "Did you apply?" after an external apply link.
 private struct TrackerLifecycle: ViewModifier {
 
     let scenePhase: ScenePhase
     let isConnected: Bool
 
     @EnvironmentObject private var tracker: TrackerStore
-    @EnvironmentObject private var dashboard: DashboardViewModel
-    @EnvironmentObject private var auth: AuthViewModel
-    @EnvironmentObject private var resumeManager: ResumeManager
-    @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
-    @EnvironmentObject private var router: AppRouter
 
     func body(content: Content) -> some View {
         content
-            .task {
-                tracker.authChanged(auth.state)
-                dashboard.authChanged(auth.state)
-                // The resume kept on this device: match it again at launch
-                if let url = resumeManager.resumeURL, !matchedJobs.hasResume {
-                    matchedJobs.load(resumeURL: url, country: router.country)
-                }
-            }
-            .onChange(of: auth.state) { _, state in
-                tracker.authChanged(state)
-                dashboard.authChanged(state)
-            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 tracker.checkApplyPrompt(fromForeground: true)
@@ -105,33 +152,15 @@ private struct TrackerLifecycle: ViewModifier {
     }
 }
 
-// MARK: - Tracker Prompts
+// MARK: - Apply Prompt
 
-/// Sign-in for guests who tap bookmark, and "Did you apply?" after an apply
-/// link.
-private struct TrackerPrompts: ViewModifier {
+/// "Did you apply to [Company]?" after returning from an apply link.
+private struct ApplyPrompt: ViewModifier {
 
     @EnvironmentObject private var tracker: TrackerStore
-    @EnvironmentObject private var auth: AuthViewModel
-    @EnvironmentObject private var resumeManager: ResumeManager
-
-    @State private var showSignInPrompt = false
 
     func body(content: Content) -> some View {
         content
-            // Guest tapped a bookmark: sign in, then the save completes
-            .onChange(of: tracker.signInPromptJob) { _, job in
-                if job != nil { showSignInPrompt = true }
-            }
-            .sheet(isPresented: $showSignInPrompt, onDismiss: {
-                // Closed without signing in: forget the pending save
-                if !tracker.isSignedIn { tracker.signInPromptJob = nil }
-            }) {
-                AccountView(reason: "Sign in to track your applications", dismissOnSignIn: true)
-                    .environmentObject(auth)
-                    .environmentObject(resumeManager)
-                    .environmentObject(tracker)
-            }
             .alert(
                 tracker.applyPrompt.map { "Did you apply to \($0.company)?" } ?? "",
                 isPresented: Binding(

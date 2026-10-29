@@ -48,9 +48,9 @@ struct JobDetailView: View {
 
     private var scoreColor: Color {
         switch job.matchScore {
-        case (85...100)?: return Color(red: 0.0, green: 0.83, blue: 0.67)
-        case (65..<85)?:  return Color(red: 0.98, green: 0.75, blue: 0.18)
-        default:          return Color(red: 1.0, green: 0.48, blue: 0.45)
+        case (85...100)?: return AppTheme.teal
+        case (65..<85)?:  return AppTheme.amber
+        default:          return AppTheme.coral
         }
     }
 
@@ -65,41 +65,17 @@ struct JobDetailView: View {
     var body: some View {
         ZStack {
 
-            // Dark base
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            // Mesh gradient
-            GeometryReader { geo in
-                ZStack {
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.2, y: 0.1),
-                        startRadius: 0,
-                        endRadius: 300
-                    )
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.15),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.85, y: 0.4),
-                        startRadius: 0,
-                        endRadius: 260
-                    )
-                }
-                .frame(width: geo.size.width, height: geo.size.height * 0.55)
-                .ignoresSafeArea()
-            }
+            AppBackground()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 12) {
 
                     headerCard
-                    if !skills.isEmpty { skillsCard }
+                    if hasMatchSkills {
+                        matchSkillsCard
+                    } else if !skills.isEmpty {
+                        skillsCard
+                    }
                     descriptionCard
                     actionButtons
 
@@ -111,7 +87,7 @@ struct JobDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(
-            Color(red: 0.04, green: 0.04, blue: 0.06),
+            AppTheme.base,
             for: .navigationBar
         )
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -131,7 +107,7 @@ struct JobDetailView: View {
         }
         .alert("Upload Your Resume", isPresented: $showUploadAlert) {
             Button("Upload Resume") {
-                router.tab = .resume
+                router.show(.resume)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -152,11 +128,11 @@ private extension JobDetailView {
 
                     ZStack {
                         RoundedRectangle(cornerRadius: 17, style: .continuous)
-                            .fill(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.15))
+                            .fill(AppTheme.purple.opacity(0.15))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 17, style: .continuous)
                                     .stroke(
-                                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.3),
+                                        AppTheme.purple.opacity(0.3),
                                         lineWidth: 0.5
                                     )
                             )
@@ -164,7 +140,7 @@ private extension JobDetailView {
 
                         Image(systemName: "building.2.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                            .foregroundColor(AppTheme.violet)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
@@ -234,7 +210,7 @@ private extension JobDetailView {
     var skillsCard: some View {
         glassCard {
             VStack(alignment: .leading, spacing: 12) {
-                sectionLabel(title: "Key Skills", icon: "star.fill", iconColor: Color(red: 0.65, green: 0.55, blue: 0.98))
+                sectionLabel(title: "Key Skills", icon: "star.fill", iconColor: AppTheme.lavender)
 
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: 80), spacing: 8)],
@@ -243,14 +219,14 @@ private extension JobDetailView {
                     ForEach(skills, id: \.self) { skill in
                         Text(skill)
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                            .foregroundColor(AppTheme.lavender)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)
-                            .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.12))
+                            .background(AppTheme.purple.opacity(0.12))
                             .overlay(
                                 Capsule()
                                     .stroke(
-                                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.28),
+                                        AppTheme.purple.opacity(0.28),
                                         lineWidth: 0.5
                                     )
                             )
@@ -261,13 +237,64 @@ private extension JobDetailView {
         }
     }
 
+    /// Resume-matched jobs carry the skills the job asks for that the resume
+    /// has / lacks (from matching); other jobs fall back to keyword chips.
+    private var hasMatchSkills: Bool {
+        !(job.matchedSkills ?? []).isEmpty || !(job.missingSkills ?? []).isEmpty
+    }
+
+    var matchSkillsCard: some View {
+        glassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionLabel(title: "Skills", icon: "star.fill", iconColor: AppTheme.lavender)
+
+                if let matched = job.matchedSkills, !matched.isEmpty {
+                    skillGroup(title: "On your resume", skills: matched, color: AppTheme.teal, icon: "checkmark")
+                }
+                if let missing = job.missingSkills, !missing.isEmpty {
+                    skillGroup(title: "Missing from your resume", skills: missing, color: AppTheme.amber, icon: "plus")
+                    Text("Add the ones you have, or use Optimize to work them in.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+            }
+        }
+    }
+
+    private func skillGroup(title: String, skills: [String], color: Color, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white.opacity(0.5))
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(skills, id: \.self) { skill in
+                    HStack(spacing: 4) {
+                        Image(systemName: icon)
+                            .font(.system(size: 8, weight: .bold))
+                        Text(skill)
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(color)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(color.opacity(0.12))
+                    .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 0.5))
+                    .clipShape(Capsule())
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(skills.joined(separator: ", "))")
+    }
+
     var descriptionCard: some View {
         glassCard {
             VStack(alignment: .leading, spacing: 12) {
                 sectionLabel(
                     title: "Job Description",
                     icon: "doc.text.fill",
-                    iconColor: Color(red: 0.39, green: 0.22, blue: 1.0)
+                    iconColor: AppTheme.purple
                 )
 
                 Text(displayDescription)
@@ -285,10 +312,10 @@ private extension JobDetailView {
                             Spacer()
                             Text(showFullDescription ? "Show less" : "Read more")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                                .foregroundColor(AppTheme.violet)
                             Image(systemName: showFullDescription ? "chevron.up" : "chevron.down")
                                 .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(Color(red: 0.55, green: 0.43, blue: 1.0))
+                                .foregroundColor(AppTheme.violet)
                         }
                     }
                 }
@@ -349,8 +376,8 @@ private extension JobDetailView {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.39, green: 0.22, blue: 1.0),
-                            Color(red: 0.0, green: 0.83, blue: 0.67)
+                            AppTheme.purple,
+                            AppTheme.teal
                         ],
                         startPoint: .leading,
                         endPoint: .trailing
@@ -359,7 +386,7 @@ private extension JobDetailView {
                 .foregroundColor(.white)
                 .cornerRadius(16)
                 .shadow(
-                    color: Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                    color: AppTheme.purple.opacity(0.4),
                     radius: 16, x: 0, y: 6
                 )
             }

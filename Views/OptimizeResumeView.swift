@@ -12,13 +12,14 @@ struct OptimizeResumeView: View {
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var tracker: TrackerStore
     @EnvironmentObject private var auth: AuthViewModel
-    @Environment(\.openURL) private var openURL
+    @State private var showSafari = false
     @StateObject private var network = NetworkMonitor.shared
     @StateObject private var viewModel: OptimizeResumeViewModel
 
     @State private var isDownloading = false
     @State private var downloadErrorMessage: String?
     @State private var downloadedFileURL: URL?
+    @State private var sharedFileURL: URL?
 
     init(job: Job) {
         self.job = job
@@ -27,35 +28,7 @@ struct OptimizeResumeView: View {
 
     var body: some View {
         ZStack {
-            // Dark background
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            // Mesh gradient
-            GeometryReader { geo in
-                ZStack {
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.28),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.25, y: 0.1),
-                        startRadius: 0,
-                        endRadius: 280
-                    )
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.18),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.85, y: 0.35),
-                        startRadius: 0,
-                        endRadius: 240
-                    )
-                }
-                .frame(width: geo.size.width, height: geo.size.height * 0.6)
-                .ignoresSafeArea()
-            }
+            AppBackground()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
@@ -103,7 +76,7 @@ struct OptimizeResumeView: View {
             let userId = auth.user?.id
             Task { await resumeManager.saveTailored(job: job, text: text, score: after, userId: userId) }
         }
-        .sheet(item: $downloadedFileURL) { url in
+        .sheet(item: $downloadedFileURL, onDismiss: removeSharedFile) { url in
             ShareSheet(items: [url])
         }
     }
@@ -134,8 +107,8 @@ private extension OptimizeResumeView {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.39, green: 0.22, blue: 1.0),
-                                Color(red: 0.0, green: 0.83, blue: 0.67)
+                                AppTheme.purple,
+                                AppTheme.teal
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -143,7 +116,7 @@ private extension OptimizeResumeView {
                     )
                     .frame(width: 64, height: 64)
                     .shadow(
-                        color: Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
+                        color: AppTheme.purple.opacity(0.5),
                         radius: 20, x: 0, y: 8
                     )
 
@@ -238,7 +211,7 @@ private extension OptimizeResumeView {
                             HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .font(.system(size: 11))
-                                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                                    .foregroundColor(AppTheme.coral)
                                 Text("Couldn't update score")
                                     .font(.system(size: 11))
                                     .foregroundColor(.white.opacity(0.5))
@@ -247,7 +220,7 @@ private extension OptimizeResumeView {
                                     viewModel.retryScore()
                                 }
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                                .foregroundColor(AppTheme.lavender)
                             }
                             .padding(.top, 2)
                         }
@@ -276,8 +249,8 @@ private extension OptimizeResumeView {
                                 Capsule().fill(
                                     LinearGradient(
                                         colors: [
-                                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.6),
-                                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.35)
+                                            AppTheme.purple.opacity(0.6),
+                                            AppTheme.teal.opacity(0.35)
                                         ],
                                         startPoint: .leading,
                                         endPoint: .trailing
@@ -319,13 +292,13 @@ private extension OptimizeResumeView {
                 sectionHeader(
                     title: "Improved Bullets",
                     icon: "doc.text.fill",
-                    color: Color(red: 0.39, green: 0.22, blue: 1.0)
+                    color: AppTheme.purple
                 )
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(result.improvedBullets.prefix(5)), id: \.self) { bullet in
                         HStack(alignment: .top, spacing: 10) {
                             Circle()
-                                .fill(Color(red: 0.39, green: 0.22, blue: 1.0))
+                                .fill(AppTheme.purple)
                                 .frame(width: 5, height: 5)
                                 .padding(.top, 6)
                             Text(bullet)
@@ -345,12 +318,12 @@ private extension OptimizeResumeView {
                 sectionHeader(
                     title: "ATS Keywords",
                     icon: "tag.fill",
-                    color: Color(red: 0.65, green: 0.55, blue: 0.98)
+                    color: AppTheme.lavender
                 )
                 FlowChips(
                     items: result.atsKeywords,
-                    bgColor: Color(red: 0.65, green: 0.55, blue: 0.98).opacity(0.12),
-                    borderColor: Color(red: 0.65, green: 0.55, blue: 0.98).opacity(0.3),
+                    bgColor: AppTheme.lavender.opacity(0.12),
+                    borderColor: AppTheme.lavender.opacity(0.3),
                     textColor: Color(red: 0.77, green: 0.69, blue: 0.99)
                 )
             }
@@ -376,8 +349,8 @@ private extension OptimizeResumeView {
                 .background(
                     LinearGradient(
                         colors: [
-                            Color(red: 0.39, green: 0.22, blue: 1.0),
-                            Color(red: 0.0, green: 0.83, blue: 0.67)
+                            AppTheme.purple,
+                            AppTheme.teal
                         ],
                         startPoint: .leading,
                         endPoint: .trailing
@@ -391,15 +364,15 @@ private extension OptimizeResumeView {
             if let downloadErrorMessage {
                 Text(downloadErrorMessage)
                     .font(.system(size: 12))
-                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                    .foregroundColor(AppTheme.coral)
                     .multilineTextAlignment(.center)
             }
 
             if let url = URL(string: job.applyURL) {
-                // Opens Safari; "Did you apply?" is asked when the app is back
+                // In-app browser, like job detail; "Did you apply?" when it closes
                 Button {
-                    tracker.applyOpened(job, externally: true)
-                    openURL(url)
+                    tracker.applyOpened(job, externally: false)
+                    showSafari = true
                 } label: {
                     HStack {
                         Spacer()
@@ -418,6 +391,11 @@ private extension OptimizeResumeView {
                     .foregroundColor(.white.opacity(0.8))
                     .cornerRadius(16)
                 }
+                .sheet(isPresented: $showSafari, onDismiss: {
+                    tracker.checkApplyPrompt(fromForeground: false)
+                }) {
+                    SafariView(url: url)
+                }
             }
         }
     }
@@ -426,7 +404,7 @@ private extension OptimizeResumeView {
         glassCard {
             VStack(spacing: 16) {
                 ProgressView()
-                    .tint(Color(red: 0.39, green: 0.22, blue: 1.0))
+                    .tint(AppTheme.purple)
                     .scaleEffect(1.2)
                 Text("Analyzing with AI...")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -445,7 +423,7 @@ private extension OptimizeResumeView {
             VStack(spacing: 14) {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                    .foregroundColor(AppTheme.coral)
                 Text(message)
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.5))
@@ -459,12 +437,12 @@ private extension OptimizeResumeView {
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 22)
                 .padding(.vertical, 10)
-                .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                .background(AppTheme.purple.opacity(0.2))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4), lineWidth: 0.5)
+                        .stroke(AppTheme.purple.opacity(0.4), lineWidth: 0.5)
                 )
-                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                .foregroundColor(AppTheme.lavender)
                 .cornerRadius(12)
             }
             .frame(maxWidth: .infinity)
@@ -497,9 +475,9 @@ private extension OptimizeResumeView {
 
     func scoreColor(_ score: Int) -> Color {
         switch score {
-        case 85...100: return Color(red: 0.0, green: 0.83, blue: 0.67)
-        case 65..<85:  return Color(red: 0.98, green: 0.75, blue: 0.18)
-        default:       return Color(red: 1.0, green: 0.48, blue: 0.45)
+        case 85...100: return AppTheme.teal
+        case 65..<85:  return AppTheme.amber
+        default:       return AppTheme.coral
         }
     }
 
@@ -535,9 +513,9 @@ private extension OptimizeResumeView {
             // Smaller than the "62 → 81" part so the line fits on one row
             let deltaFont = Font.system(size: 15, weight: .semibold, design: .rounded)
             if delta > 0 {
-                deltaText = Text(" (+\(delta))").font(deltaFont).foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+                deltaText = Text(" (+\(delta))").font(deltaFont).foregroundColor(AppTheme.teal)
             } else if delta < 0 {
-                deltaText = Text(" (\(delta))").font(deltaFont).foregroundColor(Color(red: 0.98, green: 0.75, blue: 0.18))
+                deltaText = Text(" (\(delta))").font(deltaFont).foregroundColor(AppTheme.amber)
             } else {
                 deltaText = Text(" (no change)").font(deltaFont).foregroundColor(.white.opacity(0.4))
             }
@@ -602,15 +580,23 @@ private extension OptimizeResumeView {
 
 private extension OptimizeResumeView {
 
+    /// The PDF only exists for the share sheet; nothing is kept afterwards.
+    func removeSharedFile() {
+        if let url = sharedFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        sharedFileURL = nil
+    }
+
     func downloadResume() {
         guard network.isConnected else { downloadErrorMessage = "No internet connection"; return }
-        guard let resumeURL = resumeManager.resumeURL else {
-            downloadErrorMessage = "No resume uploaded"; return
+        guard let resumeData = resumeManager.pdfData else {
+            downloadErrorMessage = "Upload your resume first."; return
         }
         isDownloading = true; downloadErrorMessage = nil
 
         APIService.shared.downloadOptimizedResume(
-            resumeURL: resumeURL,
+            resumeData: resumeData,
             jobDescription: job.description,
             optimizedResumeJSON: viewModel.result?.response.optimizedResumeJSON
         ) { result in
@@ -619,6 +605,7 @@ private extension OptimizeResumeView {
                 switch result {
                 case .success(let url):
                     self.downloadErrorMessage = nil
+                    self.sharedFileURL = url
                     self.downloadedFileURL = url
                 case .failure:
                     self.downloadErrorMessage = "Could not download the updated resume. Tap download to try again."

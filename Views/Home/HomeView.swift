@@ -11,7 +11,6 @@ struct HomeView: View {
     @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var dashboard: DashboardViewModel
 
-    @State private var showSignIn = false
     @State private var showGoalEditor = false
     @State private var goalError = false
     @State private var since: Date?
@@ -20,63 +19,28 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            GeometryReader { geo in
-                ZStack {
-                    RadialGradient(
-                        colors: [Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25), Color.clear],
-                        center: .init(x: 0.2, y: 0.1),
-                        startRadius: 0,
-                        endRadius: 300
-                    )
-                    RadialGradient(
-                        colors: [Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.15), Color.clear],
-                        center: .init(x: 0.85, y: 0.4),
-                        startRadius: 0,
-                        endRadius: 260
-                    )
-                }
-                .frame(width: geo.size.width, height: geo.size.height * 0.55)
-                .ignoresSafeArea()
-            }
+            AppBackground()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14) {
                     greeting
 
-                    ResumeCardSection(
-                        readiness: readiness,
-                        readinessLoading: readinessLoading,
-                        isSignedIn: isSignedIn
-                    )
-
-                    if isSignedIn {
-                        PipelineSection()
-                        ThisWeekSection(showGoalEditor: $showGoalEditor)
-                        FollowUpsSection()
-                    }
-
-                    NewMatchesSection(matches: newMatches, totalMatches: matches.count, phase: matchesPhase)
-
-                    if isSignedIn {
-                        SkillGapSection(matches: matches, phase: matchesPhase)
-                        RecentActivitySection()
+                    if isNewUser {
+                        NewUserCard()
                     } else {
-                        guestCard
+                        dashboardSections
                     }
 
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isSignedIn)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isNewUser)
             }
             .refreshable { await refreshAll() }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color(red: 0.04, green: 0.04, blue: 0.06), for: .navigationBar)
+        .toolbarBackground(AppTheme.base, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -97,12 +61,6 @@ struct HomeView: View {
             since = dashboard.sinceLastVisit(for: id?.uuidString ?? "guest")
             dashboard.scheduleRefresh(accountResumeId: resumeManager.accountResumeId(for: id))
         }
-        .sheet(isPresented: $showSignIn) {
-            AccountView(reason: "Sign in to track your applications", dismissOnSignIn: true)
-                .environmentObject(auth)
-                .environmentObject(resumeManager)
-                .environmentObject(tracker)
-        }
         .sheet(isPresented: $showGoalEditor) {
             WeeklyGoalEditor(current: dashboard.data.weeklyGoal) { goal in
                 Task { goalError = !(await dashboard.setWeeklyGoal(goal)) }
@@ -115,6 +73,30 @@ struct HomeView: View {
         } message: {
             Text("Check your connection and try again.")
         }
+    }
+
+    /// A brand-new account: no resume anywhere and nothing tracked yet. One
+    /// clear next step instead of a page of empty sections.
+    private var isNewUser: Bool {
+        !resumeManager.hasResume
+            && dashboard.data.resume == nil
+            && tracker.items.isEmpty
+            && dashboard.resumeStatus != .loading
+    }
+
+    @ViewBuilder
+    private var dashboardSections: some View {
+        ResumeCardSection(
+            readiness: readiness,
+            readinessLoading: readinessLoading,
+            isSignedIn: isSignedIn
+        )
+        PipelineSection()
+        ThisWeekSection(showGoalEditor: $showGoalEditor)
+        FollowUpsSection()
+        NewMatchesSection(matches: newMatches, totalMatches: matches.count, phase: matchesPhase)
+        SkillGapSection(matches: matches, phase: matchesPhase)
+        RecentActivitySection()
     }
 
     private func refreshAll() async {
@@ -216,38 +198,49 @@ struct HomeView: View {
         return name.split(separator: " ").first.map(String.init) ?? name
     }
 
-    // MARK: Guest
+}
 
-    private var guestCard: some View {
+// MARK: - New User
+
+/// First visit for a new account: one primary action.
+private struct NewUserCard: View {
+
+    @EnvironmentObject private var router: AppRouter
+
+    var body: some View {
         DashboardCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 44, height: 44)
-                        Image(systemName: "chart.bar.doc.horizontal")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Track your progress")
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Text("Sign in to track applications, set a weekly goal and get follow-up reminders.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.45))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            VStack(alignment: .leading, spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(AppTheme.brandGradientDiagonal)
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                .accessibilityHidden(true)
+
+                Text("Upload your resume to get matched jobs")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("We'll match it to fresher roles, score how ready it is, and show you which skills to add. Your progress will appear here.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.white.opacity(0.55))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                DashboardButton(title: "Upload Resume", icon: "arrow.up.doc.fill", prominent: true) {
+                    router.show(.resume)
                 }
 
-                DashboardButton(title: "Sign In", prominent: true) { showSignIn = true }
+                Button("Or browse all new grad jobs") {
+                    router.jobsTab = .allJobs
+                    router.show(.jobs)
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(AppTheme.lavender)
+                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -311,7 +304,7 @@ private struct ResumeCardSection: View {
                         if isSignedIn {
                             Text(tailoredText)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+                                .foregroundColor(AppTheme.teal)
                         }
                     }
                     Spacer(minLength: 0)
@@ -320,10 +313,10 @@ private struct ResumeCardSection: View {
                 HStack(spacing: 10) {
                     DashboardButton(title: "Improve", icon: "wand.and.stars", prominent: true) {
                         router.jobsTab = .forYou
-                        router.tab = .jobs
+                        router.show(.jobs)
                     }
                     DashboardButton(title: "Upload new", icon: "arrow.up.doc", prominent: false) {
-                        router.tab = .resume
+                        router.show(.resume)
                     }
                 }
                 .padding(.top, 4)
@@ -342,7 +335,7 @@ private struct ResumeCardSection: View {
                         .foregroundColor(.white.opacity(0.55))
                         .fixedSize(horizontal: false, vertical: true)
                     DashboardButton(title: "Upload resume", icon: "arrow.up.doc.fill", prominent: true) {
-                        router.tab = .resume
+                        router.show(.resume)
                     }
                 }
             }
@@ -387,7 +380,7 @@ private struct PipelineSection: View {
                 if tracker.items.isEmpty {
                     DashboardButton(title: "Find your first job", icon: "magnifyingglass", prominent: false) {
                         router.jobsTab = .allJobs
-                        router.tab = .jobs
+                        router.show(.jobs)
                     }
                     .padding(.top, 4)
                 }
@@ -400,7 +393,7 @@ private struct PipelineSection: View {
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             router.trackerFilter = status
-            router.tab = .tracker
+            router.show(.tracker)
         } label: {
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(count)")
@@ -471,13 +464,13 @@ private struct ThisWeekSection: View {
                 if dashboard.goalStatus == .failed && !dashboard.hasData {
                     Button("Retry") { dashboard.retryGoal() }
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                        .foregroundColor(AppTheme.lavender)
                 } else {
                     Button(dashboard.data.weeklyGoal == nil ? "Set goal" : "Edit") {
                         showGoalEditor = true
                     }
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                    .foregroundColor(AppTheme.lavender)
                     .disabled(dashboard.goalStatus == .loading && !dashboard.hasData)
                     .accessibilityLabel(dashboard.data.weeklyGoal == nil ? "Set a weekly goal" : "Edit weekly goal")
                 }
@@ -510,7 +503,7 @@ private struct GoalRing: View {
                 .trim(from: 0, to: progress)
                 .stroke(
                     AngularGradient(
-                        colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                        colors: [AppTheme.purple, AppTheme.teal],
                         center: .center
                     ),
                     style: StrokeStyle(lineWidth: 6, lineCap: .round)
@@ -568,13 +561,13 @@ private struct WeeklyGoalEditor: View {
                     dismiss()
                 }
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                .foregroundColor(AppTheme.coral)
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(red: 0.07, green: 0.07, blue: 0.1).ignoresSafeArea())
+        .background(AppTheme.surface.ignoresSafeArea())
         .preferredColorScheme(.dark)
         .onAppear { goal = current ?? 5 }
     }
@@ -629,8 +622,8 @@ private struct FollowUpsSection: View {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 12, weight: .bold))
                                 .frame(width: 30, height: 30)
-                                .background(Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.18))
-                                .foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+                                .background(AppTheme.teal.opacity(0.18))
+                                .foregroundColor(AppTheme.teal)
                                 .clipShape(Circle())
                         }
                         .accessibilityLabel("Mark followed up")
@@ -698,7 +691,7 @@ private struct NewMatchesSection: View {
 
     private func seeAll() {
         router.jobsTab = .forYou
-        router.tab = .jobs
+        router.show(.jobs)
     }
 }
 
@@ -754,7 +747,7 @@ private struct SkillGapSection: View {
                                         Capsule()
                                             .fill(
                                                 LinearGradient(
-                                                    colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                                                    colors: [AppTheme.purple, AppTheme.teal],
                                                     startPoint: .leading,
                                                     endPoint: .trailing
                                                 )
@@ -815,7 +808,7 @@ private struct RecentActivitySection: View {
     }
 
     private func row(_ item: ActivityItem) -> some View {
-        let color = item.status?.color ?? Color(red: 0.65, green: 0.55, blue: 0.98)
+        let color = item.status?.color ?? AppTheme.lavender
         return HStack(spacing: 10) {
             Image(systemName: item.status?.icon ?? "wand.and.stars")
                 .font(.system(size: 11, weight: .semibold))
@@ -868,7 +861,7 @@ private struct DashboardCard<Content: View>: View {
                     if let actionTitle {
                         Button(actionTitle, action: onAction)
                             .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                            .foregroundColor(AppTheme.lavender)
                     }
                 }
             }
@@ -909,7 +902,7 @@ private struct DashboardButton: View {
             .background {
                 if prominent {
                     LinearGradient(
-                        colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                        colors: [AppTheme.purple, AppTheme.teal],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -972,14 +965,14 @@ private struct RetryLine: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                .foregroundColor(AppTheme.coral)
             Text(text)
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.5))
             Spacer()
             Button("Retry", action: retry)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                .foregroundColor(AppTheme.lavender)
         }
     }
 }

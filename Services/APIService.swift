@@ -121,10 +121,6 @@ final class APIService {
                     completion(.success(decoded))
                     
                 } catch {
-                    print("❌ Decode error:", error)
-                    print("📦 Raw response:",
-                          String(data: data, encoding: .utf8) ?? "")
-                    
                     completion(.failure(NSError(
                         domain: "Decode",
                         code: -4,
@@ -197,7 +193,7 @@ final class APIService {
     // MARK: - Upload Resume
     
     func uploadResume(
-        fileURL: URL,
+        pdfData: Data,
         completion: @escaping (Result<String, Error>) -> Void
     ) {
         
@@ -229,12 +225,7 @@ final class APIService {
         )
         body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
         
-        do {
-            body.append(try Data(contentsOf: fileURL))
-        } catch {
-            completion(.failure(error))
-            return
-        }
+        body.append(pdfData)
         
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
@@ -313,7 +304,7 @@ final class APIService {
     // MARK: - Download Optimized Resume
     
     func downloadOptimizedResume(
-        resumeURL: URL,
+        resumeData: Data,
         jobDescription: String,
         optimizedResumeJSON: Data? = nil,
         completion: @escaping (Result<URL, Error>) -> Void
@@ -360,7 +351,7 @@ final class APIService {
                 .data(using: .utf8)!
         )
         body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
-        body.append((try? Data(contentsOf: resumeURL)) ?? Data())
+        body.append(resumeData)
         body.append("\r\n".data(using: .utf8)!)
 
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
@@ -390,16 +381,6 @@ final class APIService {
 
             DispatchQueue.main.async {
 
-                // ✅ DEBUG LINES
-                print("❌ Network error:", error?.localizedDescription ?? "none")
-                if let http = response as? HTTPURLResponse {
-                    print("📡 Status code:", http.statusCode)
-                } else {
-                    print("📡 No HTTP response received")
-                }
-                print("📦 resumeURL being sent:", resumeURL)
-                print("📁 Temp file exists:", tempURL != nil)
-
                 if error != nil {
 
                     completion(.failure(NSError(
@@ -425,29 +406,13 @@ final class APIService {
                 }
 
                 do {
-                    let fileManager = FileManager.default
+                    // A temporary copy just for the share sheet; the caller
+                    // deletes it when sharing ends, and launch cleans up tmp
+                    let shareURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("GradHire_Resume_\(UUID().uuidString.prefix(8)).pdf")
+                    try FileManager.default.copyItem(at: tempURL, to: shareURL)
 
-                    let documentsDirectory = fileManager.urls(
-                        for: .documentDirectory,
-                        in: .userDomainMask
-                    )[0]
-
-                    // ✅ Clean up old downloads
-                    if let existing = try? fileManager.contentsOfDirectory(
-                        at: documentsDirectory,
-                        includingPropertiesForKeys: nil
-                    ) {
-                        existing
-                            .filter { $0.lastPathComponent.hasPrefix("Optimized_Resume_") }
-                            .forEach { try? fileManager.removeItem(at: $0) }
-                    }
-
-                    let fileName = "Optimized_Resume_\(UUID().uuidString).pdf"
-                    let permanentURL = documentsDirectory.appendingPathComponent(fileName)
-
-                    try fileManager.copyItem(at: tempURL, to: permanentURL)
-
-                    completion(.success(permanentURL))
+                    completion(.success(shareURL))
 
                 } catch {
 

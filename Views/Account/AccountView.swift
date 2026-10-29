@@ -4,35 +4,53 @@ import GoogleSignInSwift
 
 // MARK: - Account Button
 
-/// Toolbar/overlay button that opens the account sheet.
+/// Toolbar button: opens the account sheet when signed in. Guests see a
+/// small "Guest" chip that opens the shared sign-in sheet.
 struct AccountButton: View {
 
     @EnvironmentObject private var auth: AuthViewModel
+    @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var resumeManager: ResumeManager
     @EnvironmentObject private var tracker: TrackerStore
     @State private var showAccount = false
 
     var body: some View {
         Button {
-            showAccount = true
+            if session.isGuest {
+                session.requireAccount(.general)
+            } else {
+                showAccount = true
+            }
         } label: {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.07))
-                    .frame(width: 34, height: 34)
-                Image(systemName: auth.user == nil ? "person.crop.circle" : "person.crop.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(
-                        auth.user == nil
-                        ? .white.opacity(0.6)
-                        : Color(red: 0.0, green: 0.83, blue: 0.67)
-                    )
+            HStack(spacing: 6) {
+                if session.isGuest {
+                    Text("Guest")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
+                        .padding(.leading, 10)
+                }
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.07))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: auth.user == nil ? "person.crop.circle" : "person.crop.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(auth.user == nil ? .white.opacity(0.6) : AppTheme.teal)
+                }
+            }
+            .background {
+                if session.isGuest {
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                }
             }
         }
-        .accessibilityLabel(auth.user == nil ? "Sign in" : "Account")
+        .accessibilityLabel(session.isGuest ? "Guest. Sign in to save your progress" : "Account")
         .sheet(isPresented: $showAccount) {
             AccountView()
                 .environmentObject(auth)
+                .environmentObject(session)
                 .environmentObject(resumeManager)
                 .environmentObject(tracker)
         }
@@ -45,6 +63,7 @@ struct AccountView: View {
 
     /// Why sign-in was asked for (e.g. a guest tapped bookmark)
     var reason: String? = nil
+    var detail: String? = nil
     /// Close the sheet once signed in, so the user is back where they were
     var dismissOnSignIn = false
 
@@ -59,23 +78,14 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 0.04, green: 0.04, blue: 0.06)
-                    .ignoresSafeArea()
-
-                RadialGradient(
-                    colors: [Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25), Color.clear],
-                    center: .init(x: 0.2, y: 0.05),
-                    startRadius: 0,
-                    endRadius: 320
-                )
-                .ignoresSafeArea()
+                AppBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         switch auth.state {
                         case .loading:
                             ProgressView()
-                                .tint(Color(red: 0.55, green: 0.43, blue: 1.0))
+                                .tint(AppTheme.violet)
                                 .padding(.top, 80)
                         case .signedOut:
                             signInContent
@@ -87,7 +97,7 @@ struct AccountView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(red: 0.04, green: 0.04, blue: 0.06), for: .navigationBar)
+            .toolbarBackground(AppTheme.base, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -98,17 +108,13 @@ struct AccountView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
-                        .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                        .foregroundColor(AppTheme.lavender)
                 }
             }
         }
         .preferredColorScheme(.dark)
         .onChange(of: auth.user?.id) { _, id in
-            // Wait for the resume question (if any) before closing
-            if dismissOnSignIn, id != nil, !auth.offerResumeSave { dismiss() }
-        }
-        .onChange(of: auth.offerResumeSave) { _, offering in
-            if dismissOnSignIn, !offering, auth.user != nil { dismiss() }
+            if dismissOnSignIn, id != nil { dismiss() }
         }
         .alert("Sign out with unsynced changes?", isPresented: $confirmSignOut) {
             Button("Sign Out", role: .destructive) {
@@ -128,19 +134,6 @@ struct AccountView: View {
             Button("OK", role: .cancel) { auth.errorMessage = nil }
         } message: {
             Text(auth.errorMessage ?? "")
-        }
-        .alert("Save this resume to your account?", isPresented: $auth.offerResumeSave) {
-            Button("Save") {
-                guard let url = resumeManager.resumeURL, let userId = auth.user?.id else { return }
-                Task {
-                    if let id = await auth.saveGuestResume(fileURL: url, text: resumeManager.resumeText, title: resumeManager.fileName) {
-                        resumeManager.linkToAccount(resumeId: id, userId: userId)
-                    }
-                }
-            }
-            Button("Not now", role: .cancel) {}
-        } message: {
-            Text("Your resume will be stored privately in your GradHire account so it's there next time. If you choose Not now, it isn't stored.")
         }
         .alert("Delete your account?", isPresented: $confirmDelete) {
             Button("Delete Account", role: .destructive) {
@@ -166,7 +159,7 @@ struct AccountView: View {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                            colors: [AppTheme.purple, AppTheme.teal],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -184,43 +177,17 @@ struct AccountView: View {
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("Save jobs, track your applications and keep your resume with your account. You can keep using GradHire as a guest.")
+                Text(detail ?? "Save jobs, track your applications and keep your resume with your account. You can keep using GradHire as a guest.")
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.45))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if auth.isConfigured {
-                VStack(spacing: 12) {
-                    SignInWithAppleButton(.signIn) { request in
-                        auth.prepareAppleRequest(request)
-                    } onCompletion: { result in
-                        Task {
-                            await auth.completeAppleSignIn(result, hasResumeToOffer: resumeManager.resumeURL != nil)
-                        }
-                    }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 50)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    GoogleSignInButton(scheme: .dark, style: .wide, state: auth.isWorking ? .disabled : .normal) {
-                        Task { await auth.signInWithGoogle(hasResumeToOffer: resumeManager.resumeURL != nil) }
-                    }
-                    .frame(height: 50)
-                }
-                .disabled(auth.isWorking)
-                .overlay {
-                    if auth.isWorking {
-                        ProgressView().tint(.white)
-                    }
-                }
+            SignInButtons()
                 .padding(.top, 6)
-            } else {
-                notice("Sign-in isn't available right now.")
-            }
 
-            Button("Continue as guest") { dismiss() }
+            Button("Not now") { dismiss() }
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white.opacity(0.5))
                 .padding(.top, 4)
@@ -237,7 +204,7 @@ struct AccountView: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                                    colors: [AppTheme.purple, AppTheme.teal],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -261,7 +228,7 @@ struct AccountView: View {
                         }
                         Text(providerLabel(user.provider))
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(Color(red: 0.0, green: 0.83, blue: 0.67))
+                            .foregroundColor(AppTheme.teal)
                             .padding(.top, 2)
                     }
                     Spacer(minLength: 0)
@@ -291,9 +258,9 @@ struct AccountView: View {
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.08))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.25), lineWidth: 0.5))
-                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                    .background(AppTheme.coral.opacity(0.08))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(AppTheme.coral.opacity(0.25), lineWidth: 0.5))
+                    .foregroundColor(AppTheme.coral)
                     .cornerRadius(14)
             }
             .disabled(auth.isWorking)
@@ -357,10 +324,10 @@ struct AccountView: View {
     private func notice(_ text: String, icon: String = "info.circle.fill", showsProgress: Bool = false) -> some View {
         HStack(spacing: 10) {
             if showsProgress {
-                ProgressView().tint(Color(red: 0.55, green: 0.43, blue: 1.0))
+                ProgressView().tint(AppTheme.violet)
             } else {
                 Image(systemName: icon)
-                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                    .foregroundColor(AppTheme.lavender)
             }
             Text(text)
                 .font(.system(size: 13))
@@ -380,5 +347,44 @@ struct AccountView: View {
             .background(Color.white.opacity(0.05))
             .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Color.white.opacity(0.09), lineWidth: 0.5))
             .cornerRadius(20)
+    }
+}
+
+// MARK: - Sign-in Buttons
+
+/// The official Sign in with Apple and Google buttons, shared by the Welcome
+/// screen and the sign-in sheet.
+struct SignInButtons: View {
+
+    @EnvironmentObject private var auth: AuthViewModel
+
+    var body: some View {
+        if auth.isConfigured {
+            VStack(spacing: 12) {
+                SignInWithAppleButton(.signIn) { request in
+                    auth.prepareAppleRequest(request)
+                } onCompletion: { result in
+                    Task { await auth.completeAppleSignIn(result) }
+                }
+                .signInWithAppleButtonStyle(.white)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                GoogleSignInButton(scheme: .dark, style: .wide, state: auth.isWorking ? .disabled : .normal) {
+                    Task { await auth.signInWithGoogle() }
+                }
+                .frame(height: 50)
+            }
+            .disabled(auth.isWorking)
+            .overlay {
+                if auth.isWorking {
+                    ProgressView().tint(.white)
+                }
+            }
+        } else {
+            Text("Sign-in isn't available right now.")
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.6))
+        }
     }
 }

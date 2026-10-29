@@ -12,14 +12,17 @@ import Supabase
 
 // MARK: - Resume Manager
 
-/// The resume the user is working with. It's kept on this device only (in
-/// the app's private, encrypted Application Support folder) so matches and
-/// the dashboard survive a relaunch. It reaches the user's account only if
-/// they choose to save it; `accountResumeId` then links the two.
+/// The resume the user is working with.
+///
+/// - Guests: kept in memory only, for this session. Nothing is written to
+///   disk, so quitting the app forgets it.
+/// - Signed-in users: also kept on this device (the app's private, encrypted
+///   Application Support folder, per user) so it survives a relaunch, and
+///   linked to the copy in their account (`accountResumeId`) once saved.
 final class ResumeManager: ObservableObject {
 
-    @Published var resumeURL: URL? = nil
-    @Published var resumeText: String?
+    @Published private(set) var pdfData: Data?
+    @Published private(set) var resumeText: String?
     @Published private(set) var fileName: String?
     @Published private(set) var uploadedAt: Date?
 
@@ -27,16 +30,18 @@ final class ResumeManager: ObservableObject {
     @Published private(set) var accountResumeId: UUID?
     private var accountUserId: UUID?
 
+    /// Set while signed in; nil means "memory only" (guest).
+    private var ownerId: UUID?
+
     private let resumes: (any ResumeRepository)?
     private let applications: (any ApplicationRepository)?
 
     init(resumes: (any ResumeRepository)? = nil, applications: (any ApplicationRepository)? = nil) {
         self.resumes = resumes
         self.applications = applications
-        restore()
     }
 
-    var hasResume: Bool { resumeURL != nil }
+    var hasResume: Bool { pdfData != nil }
 
     /// The account copy for this user, if the current resume was saved by them.
     func accountResumeId(for userId: UUID?) -> UUID? {
@@ -44,35 +49,56 @@ final class ResumeManager: ObservableObject {
         return accountResumeId
     }
 
-    // MARK: Local Copy
+    // MARK: Session
 
-    /// Keeps a newly uploaded resume on this device, replacing the previous
-    /// one. A new resume isn't linked to the account until the user saves it.
-    func store(pdfData: Data, text: String, fileName: String) throws -> URL {
-        let folder = try Self.folder()
-        let pdfURL = folder.appendingPathComponent("resume.pdf")
+    /// Signed in: restores this user's resume from the device, or keeps (and
+    /// stores) the one already in memory from the guest session.
+    func signedIn(userId: UUID) {
+        guard ownerId != userId else { return }
+        ownerId = userId
+        if hasResume {
+            persist()
+        } else {
+            restore(for: userId)
+        }
+    }
 
-        try pdfData.write(to: pdfURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        try Data(text.utf8).write(
-            to: folder.appendingPathComponent("resume.txt"),
-            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
-        )
+    /// Signed out (or account deleted): forget the resume and remove every
+    /// copy on this device.
+    func signedOut() {
+        ownerId = nil
+        clearMemory()
+        Self.removeAllStoredResumes()
+    }
 
-        resumeURL = pdfURL
+    // MARK: Changes
+
+    /// A newly uploaded resume replaces the current one. It isn't linked to
+    /// the account until the user saves it.
+    func replace(pdfData: Data, text: String, fileName: String) {
+        self.pdfData = pdfData
         resumeText = text
         self.fileName = fileName
         uploadedAt = Date()
         accountResumeId = nil
         accountUserId = nil
-        persistMeta()
-        return pdfURL
+        persist()
     }
 
     /// Records that the current resume was saved to this user's account.
     func linkToAccount(resumeId: UUID, userId: UUID) {
         accountResumeId = resumeId
         accountUserId = userId
-        persistMeta()
+        persist()
+    }
+
+    private func clearMemory() {
+        pdfData = nil
+        resumeText = nil
+        fileName = nil
+        uploadedAt = nil
+        accountResumeId = nil
+        accountUserId = nil
     }
 
     // MARK: Tailored Versions
@@ -101,7 +127,7 @@ final class ResumeManager: ObservableObject {
         }
     }
 
-    // MARK: Persistence
+    // MARK: Device Storage (signed-in users only)
 
     private struct Meta: Codable {
         var fileName: String?
@@ -110,40 +136,57 @@ final class ResumeManager: ObservableObject {
         var accountUserId: UUID?
     }
 
-    private static func folder() throws -> URL {
-        let base = try FileManager.default.url(
+    /// Application Support/Resume, excluded from backups.
+    static func rootFolder() -> URL? {
+        guard let base = try? FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-        )
-        let folder = base.appendingPathComponent("Resume", isDirectory: true)
-        if !FileManager.default.fileExists(atPath: folder.path) {
+        ) else { return nil }
+        return base.appendingPathComponent("Resume", isDirectory: true)
+    }
+
+    private static func folder(for userId: UUID) -> URL? {
+        guard var root = rootFolder() else { return nil }
+        if !FileManager.default.fileExists(atPath: root.path) {
+            try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
             var values = URLResourceValues()
             values.isExcludedFromBackup = true
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            var mutableFolder = folder
-            try? mutableFolder.setResourceValues(values)
+            try? root.setResourceValues(values)
         }
+        let folder = root.appendingPathComponent(userId.uuidString.lowercased(), isDirectory: true)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         return folder
     }
 
-    private func persistMeta() {
-        guard let folder = try? Self.folder() else { return }
-        let meta = Meta(fileName: fileName, uploadedAt: uploadedAt, accountResumeId: accountResumeId, accountUserId: accountUserId)
-        guard let data = try? JSONEncoder().encode(meta) else { return }
-        try? data.write(to: folder.appendingPathComponent("meta.json"), options: .atomic)
+    static func removeAllStoredResumes() {
+        guard let root = rootFolder() else { return }
+        try? FileManager.default.removeItem(at: root)
     }
 
-    private func restore() {
-        guard let folder = try? Self.folder() else { return }
-        let pdfURL = folder.appendingPathComponent("resume.pdf")
-        guard FileManager.default.fileExists(atPath: pdfURL.path),
+    private func persist() {
+        // Guests: never written to disk
+        guard let ownerId, let pdfData, let resumeText, let folder = Self.folder(for: ownerId) else { return }
+        let protection: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+
+        try? pdfData.write(to: folder.appendingPathComponent("resume.pdf"), options: protection)
+        try? Data(resumeText.utf8).write(to: folder.appendingPathComponent("resume.txt"), options: protection)
+
+        let meta = Meta(fileName: fileName, uploadedAt: uploadedAt, accountResumeId: accountResumeId, accountUserId: accountUserId)
+        if let data = try? JSONEncoder().encode(meta) {
+            try? data.write(to: folder.appendingPathComponent("meta.json"), options: protection)
+        }
+    }
+
+    private func restore(for userId: UUID) {
+        guard let folder = Self.folder(for: userId),
+              let data = try? Data(contentsOf: folder.appendingPathComponent("resume.pdf")),
               let text = try? String(contentsOf: folder.appendingPathComponent("resume.txt"), encoding: .utf8),
               !text.isEmpty else { return }
 
-        resumeURL = pdfURL
+        pdfData = data
         resumeText = text
 
-        if let data = try? Data(contentsOf: folder.appendingPathComponent("meta.json")),
-           let meta = try? JSONDecoder().decode(Meta.self, from: data) {
+        if let metaData = try? Data(contentsOf: folder.appendingPathComponent("meta.json")),
+           let meta = try? JSONDecoder().decode(Meta.self, from: metaData) {
             fileName = meta.fileName
             uploadedAt = meta.uploadedAt
             accountResumeId = meta.accountResumeId

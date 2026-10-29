@@ -21,7 +21,7 @@ final class MatchedJobsViewModel: ObservableObject {
     // Lives with the app-level view model, so it survives job detail and back
     @Published var sort: JobSort = .bestMatch
 
-    private var resumeURL: URL?
+    private var resumeData: Data?
     private var country = "in"
     private var task: Task<Void, Never>?
 
@@ -33,7 +33,7 @@ final class MatchedJobsViewModel: ObservableObject {
     /// The resume-matched jobs are loaded (or empty) for the current resume.
     var hasLoaded: Bool { state == .loaded || state == .empty }
 
-    var hasResume: Bool { resumeURL != nil }
+    var hasResume: Bool { resumeData != nil }
 
     /// The matched jobs in the selected sort order.
     var visibleJobs: [Job] {
@@ -41,11 +41,21 @@ final class MatchedJobsViewModel: ObservableObject {
     }
 
     /// Starts matching for a newly uploaded resume, replacing any previous results.
-    func load(resumeURL: URL, country: String) {
-        self.resumeURL = resumeURL
+    func load(resumeData: Data, country: String) {
+        self.resumeData = resumeData
         self.country = country
         jobs = []
         reload()
+    }
+
+    /// Signed out: forget the resume and its matches.
+    func reset() {
+        task?.cancel()
+        task = nil
+        resumeData = nil
+        jobs = []
+        state = .idle
+        sort = .bestMatch
     }
 
     func retry() {
@@ -54,12 +64,12 @@ final class MatchedJobsViewModel: ObservableObject {
 
     /// Pull to refresh: keeps the current list on screen while reloading.
     func refresh() async {
-        guard let resumeURL else { return }
+        guard let resumeData else { return }
         task?.cancel()
 
         do {
             let fetched = try await JobAPIService.shared.fetchJobsFromResume(
-                fileURL: resumeURL,
+                pdfData: resumeData,
                 country: country,
                 account: await accountContext?()
             )
@@ -72,7 +82,7 @@ final class MatchedJobsViewModel: ObservableObject {
     }
 
     private func reload() {
-        guard let resumeURL else { return }
+        guard let resumeData else { return }
 
         task?.cancel()
         state = .loading
@@ -81,7 +91,7 @@ final class MatchedJobsViewModel: ObservableObject {
         task = Task {
             do {
                 let fetched = try await JobAPIService.shared.fetchJobsFromResume(
-                    fileURL: resumeURL,
+                    pdfData: resumeData,
                     country: country,
                     account: await accountContext?()
                 )

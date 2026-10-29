@@ -12,6 +12,14 @@ nonisolated struct AuthUser: Equatable, Sendable {
 
 // MARK: - Errors
 
+/// Result of checking the stored session at launch.
+nonisolated enum StoredSessionCheck: Sendable {
+    case none     // nobody signed in
+    case valid
+    case offline  // expired but couldn't refresh (no network): keep it for now
+    case invalid  // the server rejected it: sign out
+}
+
 nonisolated enum AuthFlowError: LocalizedError {
     case notConfigured
     case googleNotConfigured
@@ -47,6 +55,11 @@ nonisolated protocol AuthRepository: Sendable {
     /// Saves the display name to the auth user and the profile row.
     func updateName(_ name: String) async throws
     func signOut() async
+    /// Clears the session on this device only (no network call).
+    func signOutLocally() async
+
+    /// Checks the stored session at launch, refreshing it if it expired.
+    func checkStoredSession() async -> StoredSessionCheck
 
     /// Deletes the account through the backend (files, Apple token, auth user,
     /// and every row that cascades from it), then clears the local session.
@@ -124,6 +137,26 @@ nonisolated final class SupabaseAuthRepository: AuthRepository {
         } catch {
             // Offline or already invalid on the server: still clear this device
             try? await client.auth.signOut(scope: .local)
+        }
+    }
+
+    func signOutLocally() async {
+        try? await client?.auth.signOut(scope: .local)
+    }
+
+    func checkStoredSession() async -> StoredSessionCheck {
+        guard let client, let stored = client.auth.currentSession else { return .none }
+        guard stored.isExpired else { return .valid }
+        do {
+            _ = try await client.auth.refreshSession()
+            return .valid
+        } catch is URLError {
+            return .offline // keep the session; it refreshes once back online
+        } catch is CancellationError {
+            return .offline // gave up waiting: not a rejection
+        } catch {
+            if Task.isCancelled { return .offline }
+            return .invalid // revoked, expired refresh token, or deleted user
         }
     }
 

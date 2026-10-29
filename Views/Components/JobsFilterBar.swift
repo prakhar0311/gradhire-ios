@@ -69,8 +69,8 @@ private struct FilterChip: View {
             if isActive {
                 LinearGradient(
                     colors: [
-                        Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
-                        Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.3)
+                        AppTheme.purple.opacity(0.5),
+                        AppTheme.teal.opacity(0.3)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
@@ -88,9 +88,9 @@ private struct FilterChip: View {
         .overlay(alignment: .topTrailing) {
             if isActive {
                 Circle()
-                    .fill(Color(red: 0.0, green: 0.83, blue: 0.67))
+                    .fill(AppTheme.teal)
                     .frame(width: 7, height: 7)
-                    .overlay(Circle().stroke(Color(red: 0.04, green: 0.04, blue: 0.06), lineWidth: 1.5))
+                    .overlay(Circle().stroke(AppTheme.base, lineWidth: 1.5))
                     .offset(x: 1, y: -1)
             }
         }

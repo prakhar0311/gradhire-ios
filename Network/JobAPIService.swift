@@ -68,7 +68,7 @@ final class JobAPIService {
     /// `account` (resume id and session token) is sent for signed-in users
     /// whose resume is saved to their account, so the matches are stored.
     func fetchJobsFromResume(
-        fileURL: URL,
+        pdfData fileData: Data,
         country: String = "in",
         account: (resumeId: UUID, accessToken: String)? = nil
     ) async throws -> [Job] {
@@ -86,15 +86,7 @@ final class JobAPIService {
             forHTTPHeaderField: "Content-Type"
         )
 
-        // 🔐 CRITICAL: Security-scoped access (REAL DEVICE FIX)
-        let canAccess = fileURL.startAccessingSecurityScopedResource()
-        defer {
-            if canAccess {
-                fileURL.stopAccessingSecurityScopedResource()
-            }
-        }
-
-        guard let fileData = try? Data(contentsOf: fileURL) else {
+        guard !fileData.isEmpty else {
             throw JobAPIError.server("Couldn't read your resume file. Please upload it again.")
         }
 

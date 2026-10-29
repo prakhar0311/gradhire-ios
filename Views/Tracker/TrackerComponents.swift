@@ -6,11 +6,11 @@ extension ApplicationStatus {
 
     var color: Color {
         switch self {
-        case .saved:        return Color(red: 0.65, green: 0.55, blue: 0.98)
-        case .applied:      return Color(red: 0.0, green: 0.83, blue: 0.67)
+        case .saved:        return AppTheme.lavender
+        case .applied:      return AppTheme.teal
         case .interviewing: return Color(red: 0.35, green: 0.68, blue: 1.0)
-        case .offer:        return Color(red: 0.98, green: 0.75, blue: 0.18)
-        case .rejected:     return Color(red: 1.0, green: 0.48, blue: 0.45)
+        case .offer:        return AppTheme.amber
+        case .rejected:     return AppTheme.coral
         }
     }
 }
@@ -101,7 +101,7 @@ struct TrackJobButton: View {
                 .foregroundColor(
                     status == nil
                     ? .white.opacity(0.6)
-                    : Color(red: 0.0, green: 0.83, blue: 0.67)
+                    : AppTheme.teal
                 )
         }
         .accessibilityLabel(status == nil ? "Save to tracker" : "Remove from tracker")

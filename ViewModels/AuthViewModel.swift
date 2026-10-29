@@ -26,9 +26,14 @@ final class AuthViewModel: ObservableObject {
     @Published private(set) var isWorking = false
     @Published var errorMessage: String?
 
-    /// Set right after the first sign-in when a resume is loaded; the account
-    /// screen then asks "Save this resume to your account?" (opt-in).
-    @Published var offerResumeSave = false
+    enum SignOutReason {
+        case user
+        case deleted
+        case expired
+    }
+
+    /// Why the last sign-out happened (nil: the server ended the session).
+    @Published private(set) var lastSignOutReason: SignOutReason?
     @Published private(set) var resumeSaveStatus: ResumeSaveStatus = .idle
 
     private let auth: any AuthRepository
@@ -62,14 +67,49 @@ final class AuthViewModel: ObservableObject {
 
     private func apply(_ user: AuthUser?) {
         guard var user else {
+            // Signed out without us asking: the server ended the session
+            if case .signedIn = state, lastSignOutReason == nil {
+                lastSignOutReason = .expired
+            }
             state = .signedOut
             return
         }
+        if self.user == nil { lastSignOutReason = nil }
         // Apple only shares the name once; keep the one we already have
         if user.name == nil, let known = self.user, known.id == user.id {
             user.name = known.name
         }
         state = .signedIn(user)
+    }
+
+    // MARK: Launch
+
+    /// Checks the stored session (refreshing it if it expired). Returns false
+    /// and signs out on this device when the server rejected it; offline, the
+    /// session is kept so the app opens with cached data.
+    func validateStoredSession() async -> Bool {
+        // Offline: keep the session and open with cached data
+        guard NetworkMonitor.shared.isConnected else { return auth.currentUser() != nil }
+        let check = await auth.checkStoredSession()
+        if Task.isCancelled { return true } // timed out; never sign out for that
+        switch check {
+        case .none:
+            return false
+        case .valid, .offline:
+            return true
+        case .invalid:
+            await expireSession()
+            return false
+        }
+    }
+
+    /// The session can't be used any more: sign out on this device only.
+    func expireSession() async {
+        lastSignOutReason = .expired
+        await auth.signOutLocally()
+        GoogleSignInHelper.signOut()
+        state = .signedOut
+        resumeSaveStatus = .idle
     }
 
     // MARK: Sign in with Apple
@@ -81,7 +121,7 @@ final class AuthViewModel: ObservableObject {
         request.nonce = AppleSignInNonce.sha256(nonce)
     }
 
-    func completeAppleSignIn(_ result: Result<ASAuthorization, Error>, hasResumeToOffer: Bool) async {
+    func completeAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
         switch result {
         case .failure(let error):
             if !AppleSignInNonce.isCancellation(error) {
@@ -115,7 +155,7 @@ final class AuthViewModel: ObservableObject {
                     }
                 }
 
-                didSignIn(user, hasResumeToOffer: hasResumeToOffer)
+                didSignIn(user)
             } catch {
                 errorMessage = message(for: error)
             }
@@ -124,14 +164,14 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: Google Sign-In
 
-    func signInWithGoogle(hasResumeToOffer: Bool) async {
+    func signInWithGoogle() async {
         isWorking = true
         defer { isWorking = false }
 
         do {
             let tokens = try await GoogleSignInHelper.signIn()
             let user = try await auth.signInWithGoogle(idToken: tokens.idToken, accessToken: tokens.accessToken)
-            didSignIn(user, hasResumeToOffer: hasResumeToOffer)
+            didSignIn(user)
         } catch {
             if !GoogleSignInHelper.isCancellation(error) {
                 errorMessage = message(for: error)
@@ -139,16 +179,17 @@ final class AuthViewModel: ObservableObject {
         }
     }
 
-    private func didSignIn(_ user: AuthUser, hasResumeToOffer: Bool) {
+    private func didSignIn(_ user: AuthUser) {
+        lastSignOutReason = nil
         state = .signedIn(user)
         resumeSaveStatus = .idle
-        offerResumeSave = hasResumeToOffer
     }
 
     // MARK: Sign Out / Delete
 
     func signOut() async {
         isWorking = true
+        lastSignOutReason = .user
         await auth.signOut()
         GoogleSignInHelper.signOut()
         state = .signedOut
@@ -179,6 +220,7 @@ final class AuthViewModel: ObservableObject {
 
         do {
             try await auth.deleteAccount(appleAuthorizationCode: appleCode)
+            lastSignOutReason = .deleted
             GoogleSignInHelper.signOut()
             state = .signedOut
             resumeSaveStatus = .idle
@@ -195,11 +237,10 @@ final class AuthViewModel: ObservableObject {
     /// and records it as their original resume. Only runs when the user
     /// chooses Save. Returns the new resume's id.
     @discardableResult
-    func saveGuestResume(fileURL: URL, text: String?, title: String? = nil) async -> UUID? {
+    func saveGuestResume(pdfData data: Data, text: String?, title: String? = nil) async -> UUID? {
         resumeSaveStatus = .saving
 
         do {
-            let data = try Data(contentsOf: fileURL)
             let fileName = "resume-\(Int(Date().timeIntervalSince1970)).pdf"
             let path = try await resumes.uploadResumeFile(data, fileName: fileName)
 

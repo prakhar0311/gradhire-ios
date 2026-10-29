@@ -91,7 +91,6 @@ final class TrackerStore: ObservableObject {
             syncError = nil
             removeOtherUsersRows(keeping: user.id)
             reload()
-            importLegacyBookmarks()
 
             // Finish the save a guest started before signing in
             if let job = signInPromptJob {
@@ -418,9 +417,9 @@ final class TrackerStore: ObservableObject {
         try? context.save()
     }
 
-    private func importLegacyBookmarks() {
-        let jobs = LegacyBookmarks.take()
-        guard !jobs.isEmpty else { return }
+    /// Saves jobs a guest had bookmarked in the previous app version.
+    func importJobs(_ jobs: [Job]) {
+        guard isSignedIn else { return }
         for job in jobs.reversed() where status(for: job.id) == nil {
             save(job)
         }

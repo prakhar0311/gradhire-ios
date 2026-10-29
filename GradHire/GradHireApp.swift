@@ -17,14 +17,20 @@ struct GradHireApp: App {
     @StateObject private var auth: AuthViewModel
     @StateObject private var tracker: TrackerStore
     @StateObject private var dashboard: DashboardViewModel
-    @StateObject private var router = AppRouter()
+    @StateObject private var router: AppRouter
+    @StateObject private var session: AppSession // decides Welcome vs guest vs signed in
 
     init() {
         let supabase = SupabaseManager()
         _supabase = StateObject(wrappedValue: supabase)
-        _auth = StateObject(wrappedValue: AuthViewModel(auth: supabase.auth, resumes: supabase.resumes))
-        _tracker = StateObject(wrappedValue: TrackerStore(repository: supabase.applications))
-        _dashboard = StateObject(wrappedValue: DashboardViewModel(repository: supabase.dashboard))
+        let auth = AuthViewModel(auth: supabase.auth, resumes: supabase.resumes)
+        _auth = StateObject(wrappedValue: auth)
+        let tracker = TrackerStore(repository: supabase.applications)
+        _tracker = StateObject(wrappedValue: tracker)
+        let dashboard = DashboardViewModel(repository: supabase.dashboard)
+        _dashboard = StateObject(wrappedValue: dashboard)
+        let router = AppRouter()
+        _router = StateObject(wrappedValue: router)
 
         let resumeManager = ResumeManager(resumes: supabase.resumes, applications: supabase.applications)
         _resumeManager = StateObject(wrappedValue: resumeManager)
@@ -37,11 +43,20 @@ struct GradHireApp: App {
             return (resumeId, access.accessToken)
         }
         _matchedJobs = StateObject(wrappedValue: matchedJobs)
+
+        _session = StateObject(wrappedValue: AppSession(
+            auth: auth,
+            tracker: tracker,
+            dashboard: dashboard,
+            resumeManager: resumeManager,
+            matchedJobs: matchedJobs,
+            router: router
+        ))
     }
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            AppRootView()
                 .environmentObject(resumeManager)
                 .environmentObject(matchedJobs)
                 .environmentObject(allJobs)
@@ -50,9 +65,10 @@ struct GradHireApp: App {
                 .environmentObject(tracker)
                 .environmentObject(dashboard)
                 .environmentObject(router)
+                .environmentObject(session)
                 .task { await APIService.shared.warmUpServer() }
                 .task { await supabase.logConnectionCheck() }
-                .task { auth.start() }
+                .task { await session.start() }
                 // Google Sign-In returns to the app through its URL scheme
                 .onOpenURL { url in GoogleSignInHelper.handle(url) }
         }

@@ -20,16 +20,7 @@ struct TrackerDetailView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            RadialGradient(
-                colors: [Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.22), Color.clear],
-                center: .init(x: 0.2, y: 0.05),
-                startRadius: 0,
-                endRadius: 320
-            )
-            .ignoresSafeArea()
+            AppBackground()
 
             if let item {
                 ScrollView(showsIndicators: false) {
@@ -58,7 +49,7 @@ struct TrackerDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color(red: 0.04, green: 0.04, blue: 0.06), for: .navigationBar)
+        .toolbarBackground(AppTheme.base, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -239,11 +230,11 @@ struct TrackerDetailView: View {
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
-                    .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
-                    .background(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.08))
+                    .foregroundColor(AppTheme.coral)
+                    .background(AppTheme.coral.opacity(0.08))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.25), lineWidth: 0.5)
+                            .stroke(AppTheme.coral.opacity(0.25), lineWidth: 0.5)
                     )
                     .cornerRadius(14)
             }
@@ -264,7 +255,7 @@ struct TrackerDetailView: View {
         .background {
             if prominent {
                 LinearGradient(
-                    colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                    colors: [AppTheme.purple, AppTheme.teal],
                     startPoint: .leading,
                     endPoint: .trailing
                 )

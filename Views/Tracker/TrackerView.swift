@@ -6,13 +6,11 @@ struct TrackerView: View {
 
     @EnvironmentObject private var tracker: TrackerStore
     @EnvironmentObject private var router: AppRouter
-    @EnvironmentObject private var auth: AuthViewModel
-    @EnvironmentObject private var resumeManager: ResumeManager
+    @EnvironmentObject private var session: AppSession
     @StateObject private var network = NetworkMonitor.shared
 
     @State private var confirmRemove: Job?
     @State private var statusChoice: TrackedApplication?
-    @State private var showSignIn = false
 
     private var visibleItems: [TrackedApplication] {
         guard let filter = router.trackerFilter else { return tracker.items }
@@ -21,16 +19,7 @@ struct TrackerView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            RadialGradient(
-                colors: [Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.22), Color.clear],
-                center: .init(x: 0.2, y: 0.05),
-                startRadius: 0,
-                endRadius: 320
-            )
-            .ignoresSafeArea()
+            AppBackground()
 
             if !tracker.isSignedIn {
                 ScrollView(showsIndicators: false) {
@@ -45,7 +34,7 @@ struct TrackerView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color(red: 0.04, green: 0.04, blue: 0.06), for: .navigationBar)
+        .toolbarBackground(AppTheme.base, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -71,12 +60,6 @@ struct TrackerView: View {
                 }
             }
             Button("Cancel", role: .cancel) {}
-        }
-        .sheet(isPresented: $showSignIn) {
-            AccountView(reason: "Sign in to track your applications", dismissOnSignIn: true)
-                .environmentObject(auth)
-                .environmentObject(resumeManager)
-                .environmentObject(tracker)
         }
     }
 
@@ -146,7 +129,7 @@ struct TrackerView: View {
                 } label: {
                     Label("Status", systemImage: "ellipsis.circle")
                 }
-                .tint(Color(red: 0.39, green: 0.22, blue: 1.0))
+                .tint(AppTheme.purple)
             }
             .swipeActions(edge: .trailing, allowsFullSwipe: item.status == .saved) {
                 Button(role: item.status == .saved ? .destructive : nil) {
@@ -154,7 +137,7 @@ struct TrackerView: View {
                 } label: {
                     Label("Remove", systemImage: "trash")
                 }
-                .tint(Color(red: 1.0, green: 0.38, blue: 0.36))
+                .tint(AppTheme.coral)
             }
             .contextMenu {
                 ForEach(ApplicationStatus.allCases, id: \.self) { status in
@@ -223,7 +206,7 @@ struct TrackerView: View {
 
     private func chip(title: String, count: Int, status: ApplicationStatus?) -> some View {
         let isSelected = router.trackerFilter == status
-        let tint = status?.color ?? Color(red: 0.65, green: 0.55, blue: 0.98)
+        let tint = status?.color ?? AppTheme.lavender
 
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -282,7 +265,7 @@ struct TrackerView: View {
             title: "No applications yet",
             message: "Tap the bookmark on any job to save it here, then track it from Saved to Offer.",
             actionTitle: "Browse jobs",
-            action: { router.tab = .jobs }
+            action: { router.show(.jobs) }
         )
         .padding(.horizontal, 16)
     }
@@ -299,21 +282,19 @@ struct TrackerView: View {
                 withAnimation { router.trackerFilter = nil }
             }
             .font(.system(size: 13, weight: .semibold))
-            .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+            .foregroundColor(AppTheme.lavender)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)
     }
 
     private var guestCard: some View {
-        let legacyCount = LegacyBookmarks.count
-
-        return VStack(spacing: 14) {
+        VStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                            colors: [AppTheme.purple, AppTheme.teal],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -329,18 +310,14 @@ struct TrackerView: View {
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
 
-            Text(
-                legacyCount > 0
-                ? "You have \(legacyCount) saved job\(legacyCount == 1 ? "" : "s") on this device. Sign in to keep \(legacyCount == 1 ? "it" : "them") in your tracker."
-                : "Save jobs, mark them as applied, and follow each one through to an offer, on any device."
-            )
+            Text("Save jobs, mark them as applied, and follow each one through to an offer, on any device.")
             .font(.system(size: 13))
             .foregroundColor(.white.opacity(0.45))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                showSignIn = true
+                session.requireAccount(.tracker)
             } label: {
                 Text("Sign In")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -348,7 +325,7 @@ struct TrackerView: View {
                     .padding(.vertical, 14)
                     .background(
                         LinearGradient(
-                            colors: [Color(red: 0.39, green: 0.22, blue: 1.0), Color(red: 0.0, green: 0.83, blue: 0.67)],
+                            colors: [AppTheme.purple, AppTheme.teal],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -358,7 +335,7 @@ struct TrackerView: View {
             }
             .padding(.top, 4)
 
-            Button("Browse jobs") { router.tab = .jobs }
+            Button("Browse jobs") { router.show(.jobs) }
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.white.opacity(0.5))
         }

@@ -27,35 +27,7 @@ struct JobListView: View {
     var body: some View {
         ZStack {
 
-            // Dark base
-            Color(red: 0.04, green: 0.04, blue: 0.06)
-                .ignoresSafeArea()
-
-            // Mesh gradient background
-            GeometryReader { geo in
-                ZStack {
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.25),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.2, y: 0.1),
-                        startRadius: 0,
-                        endRadius: 300
-                    )
-                    RadialGradient(
-                        colors: [
-                            Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.15),
-                            Color.clear
-                        ],
-                        center: .init(x: 0.85, y: 0.4),
-                        startRadius: 0,
-                        endRadius: 260
-                    )
-                }
-                .frame(width: geo.size.width, height: geo.size.height * 0.55)
-                .ignoresSafeArea()
-            }
+            AppBackground()
 
             ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 0) {
@@ -84,7 +56,7 @@ struct JobListView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(
-            Color(red: 0.04, green: 0.04, blue: 0.06),
+            AppTheme.base,
             for: .navigationBar
         )
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -144,7 +116,7 @@ struct JobListView: View {
                 title: "Get matched to jobs",
                 message: "Upload your resume to see roles matched to your skills.",
                 actionTitle: "Upload Resume",
-                action: { router.tab = .resume }
+                action: { router.show(.resume) }
             )
             .padding(.horizontal, 16)
 
@@ -235,7 +207,7 @@ struct JobListView: View {
 
         } else if allJobs.hasMore {
             ProgressView()
-                .tint(Color(red: 0.55, green: 0.43, blue: 1.0))
+                .tint(AppTheme.violet)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .onAppear { allJobs.loadMoreIfNeeded() }
@@ -320,8 +292,8 @@ struct JobsTabPicker: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.5),
-                                                Color(red: 0.0, green: 0.83, blue: 0.67).opacity(0.3)
+                                                AppTheme.purple.opacity(0.5),
+                                                AppTheme.teal.opacity(0.3)
                                             ],
                                             startPoint: .leading,
                                             endPoint: .trailing
@@ -358,10 +330,10 @@ struct DarkJobCard: View {
 
     private var iconColor: Color {
         switch job.matchScore {
-        case (85...100)?: return Color(red: 0.39, green: 0.22, blue: 1.0)
-        case (65..<85)?:  return Color(red: 0.0, green: 0.83, blue: 0.67)
-        case nil:         return Color(red: 0.39, green: 0.22, blue: 1.0)
-        default:          return Color(red: 0.98, green: 0.75, blue: 0.18)
+        case (85...100)?: return AppTheme.purple
+        case (65..<85)?:  return AppTheme.teal
+        case nil:         return AppTheme.purple
+        default:          return AppTheme.amber
         }
     }
 
@@ -402,7 +374,7 @@ struct DarkJobCard: View {
                             .background(
                                 LinearGradient(
                                     colors: [
-                                        Color(red: 0.98, green: 0.75, blue: 0.18),
+                                        AppTheme.amber,
                                         Color(red: 0.98, green: 0.45, blue: 0.08)
                                     ],
                                     startPoint: .leading,
@@ -460,7 +432,7 @@ struct DarkJobCard: View {
                         .contentTransition(.symbolEffect(.replace))
                         .foregroundColor(
                             isSaved
-                            ? Color(red: 0.0, green: 0.83, blue: 0.67)
+                            ? AppTheme.teal
                             : .white.opacity(0.3)
                         )
                         .frame(width: 34, height: 34)
@@ -495,8 +467,8 @@ struct DarkTag: View {
 
     var color: Color {
         teal
-        ? Color(red: 0.0, green: 0.83, blue: 0.67)
-        : Color(red: 0.39, green: 0.22, blue: 1.0)
+        ? AppTheme.teal
+        : AppTheme.purple
     }
 
     var body: some View {
@@ -529,15 +501,15 @@ struct DarkMatchRing: View {
     private var ringColors: [Color] {
         switch score {
         case 85...100: return [
-            Color(red: 0.0, green: 0.83, blue: 0.67),
-            Color(red: 0.39, green: 0.22, blue: 1.0)
+            AppTheme.teal,
+            AppTheme.purple
         ]
         case 65..<85: return [
-            Color(red: 0.39, green: 0.22, blue: 1.0),
-            Color(red: 0.0, green: 0.83, blue: 0.67)
+            AppTheme.purple,
+            AppTheme.teal
         ]
         default: return [
-            Color(red: 0.98, green: 0.75, blue: 0.18),
+            AppTheme.amber,
             Color(red: 0.98, green: 0.45, blue: 0.08)
         ]
         }
@@ -553,7 +525,7 @@ struct DarkMatchRing: View {
                 Circle()
                     .trim(from: 0, to: 0.28)
                     .stroke(
-                        Color(red: 0.55, green: 0.43, blue: 1.0),
+                        AppTheme.violet,
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(spin ? 270 : -90))
@@ -663,7 +635,7 @@ struct ShimmerModifier: ViewModifier {
                         colors: [
                             Color.clear,
                             Color.white.opacity(0.07),
-                            Color(red: 0.55, green: 0.43, blue: 1.0).opacity(0.08),
+                            AppTheme.violet.opacity(0.08),
                             Color.clear
                         ],
                         startPoint: .leading,
@@ -698,7 +670,7 @@ struct DarkErrorView: View {
         VStack(spacing: 16) {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 36))
-                .foregroundColor(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.7))
+                .foregroundColor(AppTheme.purple.opacity(0.7))
 
             Text("Couldn't load jobs")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -714,15 +686,15 @@ struct DarkErrorView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .padding(.horizontal, 28)
                     .padding(.vertical, 12)
-                    .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                    .background(AppTheme.purple.opacity(0.2))
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
                             .stroke(
-                                Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                                AppTheme.purple.opacity(0.4),
                                 lineWidth: 0.5
                             )
                     )
-                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                    .foregroundColor(AppTheme.lavender)
                     .cornerRadius(14)
             }
         }
@@ -767,15 +739,15 @@ struct DarkEmptyView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .padding(.horizontal, 28)
                         .padding(.vertical, 12)
-                        .background(Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.2))
+                        .background(AppTheme.purple.opacity(0.2))
                         .overlay(
                             RoundedRectangle(cornerRadius: 14)
                                 .stroke(
-                                    Color(red: 0.39, green: 0.22, blue: 1.0).opacity(0.4),
+                                    AppTheme.purple.opacity(0.4),
                                     lineWidth: 0.5
                                 )
                         )
-                        .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                        .foregroundColor(AppTheme.lavender)
                         .cornerRadius(14)
                 }
                 .padding(.top, 4)
@@ -803,7 +775,7 @@ struct DarkInlineBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundColor(Color(red: 1.0, green: 0.48, blue: 0.45))
+                .foregroundColor(AppTheme.coral)
 
             Text(message)
                 .font(.system(size: 12))
@@ -813,7 +785,7 @@ struct DarkInlineBanner: View {
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(red: 0.65, green: 0.55, blue: 0.98))
+                    .foregroundColor(AppTheme.lavender)
             }
 
             if let onDismiss {
@@ -826,10 +798,10 @@ struct DarkInlineBanner: View {
             }
         }
         .padding(14)
-        .background(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.07))
+        .background(AppTheme.coral.opacity(0.07))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(red: 1.0, green: 0.48, blue: 0.45).opacity(0.2), lineWidth: 0.5)
+                .stroke(AppTheme.coral.opacity(0.2), lineWidth: 0.5)
         )
         .cornerRadius(14)
     }
