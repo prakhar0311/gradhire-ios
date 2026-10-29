@@ -65,9 +65,12 @@ final class JobAPIService {
 
     // MARK: - Fetch Jobs From Resume (Multipart)
 
+    /// `account` (resume id and session token) is sent for signed-in users
+    /// whose resume is saved to their account, so the matches are stored.
     func fetchJobsFromResume(
         fileURL: URL,
-        country: String = "in"
+        country: String = "in",
+        account: (resumeId: UUID, accessToken: String)? = nil
     ) async throws -> [Job] {
 
         guard let url = URL(string: "\(APIConstants.jobsFromResume)?country=\(country)") else {
@@ -103,6 +106,12 @@ final class JobAPIService {
         )
         body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
         body.append(fileData)
+        if let account {
+            body.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"resume_id\"\r\n\r\n".data(using: .utf8)!)
+            body.append(account.resumeId.uuidString.lowercased().data(using: .utf8)!)
+            request.setValue("Bearer \(account.accessToken)", forHTTPHeaderField: "Authorization")
+        }
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
         request.httpBody = body

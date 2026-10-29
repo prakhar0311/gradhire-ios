@@ -10,10 +10,14 @@ struct Job: Identifiable, Codable, Hashable {
     let applyURL: String
     let postedAt: Date?
     let contractTime: String? // Adzuna: "full_time", "part_time" or nil
+    // Resume-matched jobs only: skills the job asks for that the resume has / lacks
+    var matchedSkills: [String]? = nil
+    var missingSkills: [String]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description
         case matchScore, applyURL, postedAt, contractTime
+        case matchedSkills, missingSkills
     }
 }
 
@@ -34,6 +38,8 @@ extension Job {
         applyURL = try container.decode(String.self, forKey: .applyURL)
         postedAt = try? container.decodeIfPresent(Date.self, forKey: .postedAt)
         contractTime = try? container.decodeIfPresent(String.self, forKey: .contractTime)
+        matchedSkills = try? container.decodeIfPresent([String].self, forKey: .matchedSkills)
+        missingSkills = try? container.decodeIfPresent([String].self, forKey: .missingSkills)
     }
 }
 

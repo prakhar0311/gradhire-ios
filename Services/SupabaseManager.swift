@@ -18,6 +18,7 @@ final class SupabaseManager: ObservableObject {
     let jobs: any JobRepository
     let resumes: any ResumeRepository
     let applications: any ApplicationRepository
+    let dashboard: any DashboardRepository
 
     var isConfigured: Bool { client != nil }
 
@@ -28,6 +29,14 @@ final class SupabaseManager: ObservableObject {
         self.jobs = SupabaseJobRepository(client: client)
         self.resumes = SupabaseResumeRepository(client: client)
         self.applications = SupabaseApplicationRepository(client: client)
+        self.dashboard = SupabaseDashboardRepository(client: client)
+    }
+
+    /// The signed-in user's id and a fresh access token (refreshed if
+    /// needed), or nil when signed out.
+    nonisolated func currentAccess() async -> (userId: UUID, accessToken: String)? {
+        guard let client, let session = try? await client.auth.session else { return nil }
+        return (session.user.id, session.accessToken)
     }
 
     // MARK: Configuration

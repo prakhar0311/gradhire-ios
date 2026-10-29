@@ -11,6 +11,7 @@ struct OptimizeResumeView: View {
     @EnvironmentObject var resumeManager: ResumeManager
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var tracker: TrackerStore
+    @EnvironmentObject private var auth: AuthViewModel
     @Environment(\.openURL) private var openURL
     @StateObject private var network = NetworkMonitor.shared
     @StateObject private var viewModel: OptimizeResumeViewModel
@@ -93,6 +94,14 @@ struct OptimizeResumeView: View {
         }
         .onDisappear {
             viewModel.onDisappear()
+        }
+        // Once scored, keep this version with the user's saved resume
+        .onChange(of: viewModel.result?.score) { _, score in
+            guard case .loaded(_, let after)? = score,
+                  let text = viewModel.result?.response.optimizedResumeText else { return }
+            let job = viewModel.job
+            let userId = auth.user?.id
+            Task { await resumeManager.saveTailored(job: job, text: text, score: after, userId: userId) }
         }
         .sheet(item: $downloadedFileURL) { url in
             ShareSheet(items: [url])

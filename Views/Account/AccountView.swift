@@ -131,8 +131,12 @@ struct AccountView: View {
         }
         .alert("Save this resume to your account?", isPresented: $auth.offerResumeSave) {
             Button("Save") {
-                guard let url = resumeManager.resumeURL else { return }
-                Task { await auth.saveGuestResume(fileURL: url, text: resumeManager.resumeText) }
+                guard let url = resumeManager.resumeURL, let userId = auth.user?.id else { return }
+                Task {
+                    if let id = await auth.saveGuestResume(fileURL: url, text: resumeManager.resumeText, title: resumeManager.fileName) {
+                        resumeManager.linkToAccount(resumeId: id, userId: userId)
+                    }
+                }
             }
             Button("Not now", role: .cancel) {}
         } message: {

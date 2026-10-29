@@ -37,18 +37,7 @@ final class TrackerStore: ObservableObject {
 
     init(repository: any ApplicationRepository) {
         self.repository = repository
-        self.context = ModelContext(Self.makeContainer())
-    }
-
-    private static func makeContainer() -> ModelContainer {
-        let schema = Schema([TrackedJob.self])
-        let configuration = ModelConfiguration("Tracker", schema: schema)
-        if let container = try? ModelContainer(for: schema, configurations: configuration) {
-            return container
-        }
-        // A broken store must not stop the app; the server copy is the truth
-        let memory = ModelConfiguration("Tracker", schema: schema, isStoredInMemoryOnly: true)
-        return try! ModelContainer(for: schema, configurations: memory)
+        self.context = ModelContext(LocalStore.container)
     }
 
     // MARK: Reading
@@ -161,6 +150,14 @@ final class TrackerStore: ObservableObject {
         model.touch()
         // Typing: wait for a pause before syncing
         commit(syncDelay: 1.5)
+    }
+
+    /// Dashboard "Mark followed up": hides the reminder for another week.
+    func markFollowedUp(_ jobId: UUID) {
+        guard let model = model(for: jobId), model.syncState != .pendingDelete else { return }
+        model.followUpAt = Date()
+        model.touch()
+        commit()
     }
 
     func remove(_ jobId: UUID) {
@@ -306,6 +303,7 @@ final class TrackerStore: ObservableObject {
                 notes: model.notes.isEmpty ? nil : model.notes,
                 savedAt: model.savedAt,
                 appliedAt: model.appliedAt,
+                followUpAt: model.followUpAt,
                 jobSnapshot: model.snapshot
             )
 

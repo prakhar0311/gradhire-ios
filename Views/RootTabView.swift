@@ -4,6 +4,7 @@ import Combine
 // MARK: - App Router
 
 enum AppTab: Hashable {
+    case home
     case jobs
     case tracker
     case resume
@@ -12,7 +13,7 @@ enum AppTab: Hashable {
 /// App-wide navigation state, so any screen can switch tabs (e.g. "Browse
 /// jobs" in the tracker, "Find jobs" after uploading a resume).
 final class AppRouter: ObservableObject {
-    @Published var tab: AppTab = .resume
+    @Published var tab: AppTab = .home
     @Published var jobsTab: JobsTab = .forYou
     @Published var trackerFilter: ApplicationStatus?
     @Published var country = "in"
@@ -34,6 +35,12 @@ struct RootTabView: View {
 
     private var tabs: some View {
         TabView(selection: $router.tab) {
+            NavigationStack {
+                HomeView()
+            }
+            .tabItem { Label("Home", systemImage: "house.fill") }
+            .tag(AppTab.home)
+
             NavigationStack {
                 JobListView(country: router.country, selectedTab: $router.jobsTab)
             }
@@ -67,12 +74,26 @@ private struct TrackerLifecycle: ViewModifier {
     let isConnected: Bool
 
     @EnvironmentObject private var tracker: TrackerStore
+    @EnvironmentObject private var dashboard: DashboardViewModel
     @EnvironmentObject private var auth: AuthViewModel
+    @EnvironmentObject private var resumeManager: ResumeManager
+    @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
+    @EnvironmentObject private var router: AppRouter
 
     func body(content: Content) -> some View {
         content
-            .task { tracker.authChanged(auth.state) }
-            .onChange(of: auth.state) { _, state in tracker.authChanged(state) }
+            .task {
+                tracker.authChanged(auth.state)
+                dashboard.authChanged(auth.state)
+                // The resume kept on this device: match it again at launch
+                if let url = resumeManager.resumeURL, !matchedJobs.hasResume {
+                    matchedJobs.load(resumeURL: url, country: router.country)
+                }
+            }
+            .onChange(of: auth.state) { _, state in
+                tracker.authChanged(state)
+                dashboard.authChanged(state)
+            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 tracker.checkApplyPrompt(fromForeground: true)

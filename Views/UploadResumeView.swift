@@ -6,6 +6,7 @@ struct UploadResumeView: View {
     @EnvironmentObject var resumeManager: ResumeManager
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var router: AppRouter
+    @EnvironmentObject private var auth: AuthViewModel
 
     @State private var showPicker = false
     @State private var selectedFileName: String?
@@ -16,6 +17,7 @@ struct UploadResumeView: View {
     @State private var animate = false
     @State private var showSlowServerHint = false
     @State private var showAIConsent = false
+    @State private var offerAccountSave = false
 
     // Asked once, before the first resume is sent to GradHire's server and OpenAI
     @AppStorage("ai_data_consent_v1") private var hasAIConsent = false
@@ -169,6 +171,36 @@ struct UploadResumeView: View {
             )
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
+        }
+        .alert("Save this resume to your account?", isPresented: $offerAccountSave) {
+            Button("Save") {
+                saveToAccount()
+                showMatches()
+            }
+            Button("Not now", role: .cancel) { showMatches() }
+        } message: {
+            Text("It's stored privately in your GradHire account, so your readiness score, skill insights and tailored versions are kept. If you choose Not now, it stays on this device only.")
+        }
+    }
+
+    // MARK: - After Upload
+
+    /// Matching loads on the jobs screen (skeletons, error, empty states).
+    private func showMatches() {
+        router.jobsTab = .forYou
+        router.tab = .jobs
+    }
+
+    private func saveToAccount() {
+        guard let url = resumeManager.resumeURL, let userId = auth.user?.id else { return }
+        let text = resumeManager.resumeText
+        let title = resumeManager.fileName
+        Task {
+            if let id = await auth.saveGuestResume(fileURL: url, text: text, title: title) {
+                resumeManager.linkToAccount(resumeId: id, userId: userId)
+                // Match again with the account copy, so the matches are stored
+                await matchedJobs.refresh()
+            }
         }
     }
 
@@ -405,7 +437,7 @@ struct UploadResumeView: View {
             ForEach(
                 [
                     ("lock.shield.fill", "Secure Upload"),
-                    ("eye.slash.fill",   "Saved only by choice"),
+                    ("iphone",           "Kept on this device"),
                     ("doc.fill",         "PDF only")
                 ],
                 id: \.0
@@ -486,13 +518,23 @@ struct UploadResumeView: View {
 
                         case .success(let resumeText):
 
-                            resumeManager.resumeURL = localURL
-                            resumeManager.resumeText = resumeText
+                            // Keep it on this device (only); fall back to the temp copy
+                            let fileName = url.lastPathComponent
+                            if let storedURL = try? resumeManager.store(pdfData: data, text: resumeText, fileName: fileName) {
+                                try? FileManager.default.removeItem(at: localURL)
+                                matchedJobs.load(resumeURL: storedURL, country: router.country)
+                            } else {
+                                resumeManager.resumeURL = localURL
+                                resumeManager.resumeText = resumeText
+                                matchedJobs.load(resumeURL: localURL, country: router.country)
+                            }
 
-                            // Matching loads on the jobs screen (skeletons, error, empty states)
-                            matchedJobs.load(resumeURL: localURL, country: router.country)
-                            router.jobsTab = .forYou
-                            router.tab = .jobs
+                            if auth.user != nil {
+                                // Signed in: saving to the account is still a choice
+                                offerAccountSave = true
+                            } else {
+                                showMatches()
+                            }
                         }
                     }
                 }
@@ -601,7 +643,7 @@ private struct AIConsentSheet: View {
                     )
                     consentPoint(
                         icon: "trash",
-                        text: "GradHire doesn't keep your resume unless you sign in and choose to save it to your account."
+                        text: "Your resume stays on this device. It's only saved to your account if you choose."
                     )
                 }
 

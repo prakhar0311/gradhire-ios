@@ -112,6 +112,7 @@ nonisolated struct NewResume: Encodable, Sendable {
     var title: String?
     var parsedData: AnyJSON?
     var filePath: String?
+    var readinessScore: Int?
 
     enum CodingKeys: String, CodingKey {
         case kind, title
@@ -119,6 +120,7 @@ nonisolated struct NewResume: Encodable, Sendable {
         case targetJobId = "target_job_id"
         case parsedData = "parsed_data"
         case filePath = "file_path"
+        case readinessScore = "readiness_score"
     }
 }
 
@@ -242,7 +244,7 @@ nonisolated struct JobSnapshot: Codable, Sendable, Equatable {
 }
 
 /// Insert-or-update payload for a tracked job (one row per user and job).
-/// follow_up_at and resume_id are left out, so a sync never clears them.
+/// resume_id is left out, so a sync never clears it.
 nonisolated struct ApplicationUpsert: Encodable, Sendable {
     let userId: UUID
     let jobId: UUID
@@ -250,6 +252,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
     let notes: String?
     let savedAt: Date
     let appliedAt: Date?
+    let followUpAt: Date?
     let jobSnapshot: JobSnapshot
 
     enum CodingKeys: String, CodingKey {
@@ -258,6 +261,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
         case jobId = "job_id"
         case savedAt = "saved_at"
         case appliedAt = "applied_at"
+        case followUpAt = "follow_up_at"
         case jobSnapshot = "job_snapshot"
     }
 
@@ -270,6 +274,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
         try container.encode(notes, forKey: .notes)
         try container.encode(savedAt, forKey: .savedAt)
         try container.encode(appliedAt, forKey: .appliedAt)
+        try container.encode(followUpAt, forKey: .followUpAt)
         try container.encode(jobSnapshot, forKey: .jobSnapshot)
     }
 }

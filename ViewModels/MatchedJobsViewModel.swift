@@ -25,6 +25,14 @@ final class MatchedJobsViewModel: ObservableObject {
     private var country = "in"
     private var task: Task<Void, Never>?
 
+    /// For signed-in users whose resume is saved to their account: the
+    /// resume id and session token, so the backend stores the matches for
+    /// the dashboard. Set once by the app.
+    var accountContext: (() async -> (resumeId: UUID, accessToken: String)?)?
+
+    /// The resume-matched jobs are loaded (or empty) for the current resume.
+    var hasLoaded: Bool { state == .loaded || state == .empty }
+
     var hasResume: Bool { resumeURL != nil }
 
     /// The matched jobs in the selected sort order.
@@ -52,7 +60,8 @@ final class MatchedJobsViewModel: ObservableObject {
         do {
             let fetched = try await JobAPIService.shared.fetchJobsFromResume(
                 fileURL: resumeURL,
-                country: country
+                country: country,
+                account: await accountContext?()
             )
             apply(fetched)
         } catch is CancellationError {
@@ -73,7 +82,8 @@ final class MatchedJobsViewModel: ObservableObject {
             do {
                 let fetched = try await JobAPIService.shared.fetchJobsFromResume(
                     fileURL: resumeURL,
-                    country: country
+                    country: country,
+                    account: await accountContext?()
                 )
                 guard !Task.isCancelled else { return }
                 apply(fetched)

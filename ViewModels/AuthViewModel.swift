@@ -191,9 +191,11 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: Guest Resume (opt-in)
 
-    /// Uploads the resume the guest already loaded to resumes/{user id}/ and
-    /// records it as their original resume. Only runs when the user chooses Save.
-    func saveGuestResume(fileURL: URL, text: String?) async {
+    /// Uploads the resume already loaded on this device to resumes/{user id}/
+    /// and records it as their original resume. Only runs when the user
+    /// chooses Save. Returns the new resume's id.
+    @discardableResult
+    func saveGuestResume(fileURL: URL, text: String?, title: String? = nil) async -> UUID? {
         resumeSaveStatus = .saving
 
         do {
@@ -202,16 +204,18 @@ final class AuthViewModel: ObservableObject {
             let path = try await resumes.uploadResumeFile(data, fileName: fileName)
 
             var resume = NewResume(kind: .original)
-            resume.title = "My resume"
+            resume.title = title ?? "My resume"
             resume.filePath = path
             if let text, !text.isEmpty {
                 resume.parsedData = .object(["text": .string(text)])
             }
-            _ = try await resumes.createResume(resume)
+            let record = try await resumes.createResume(resume)
 
             resumeSaveStatus = .saved
+            return record.id
         } catch {
             resumeSaveStatus = .failed(message(for: error))
+            return nil
         }
     }
 

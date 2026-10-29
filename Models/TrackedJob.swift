@@ -25,6 +25,8 @@ final class TrackedJob {
     var savedAt: Date
     var appliedAt: Date?
     var updatedAt: Date
+    /// When the user last followed up (dashboard "Mark followed up")
+    var followUpAt: Date?
 
     var syncRaw: String
     /// Bumped on every local edit, so a sync response never overwrites an
@@ -118,6 +120,7 @@ final class TrackedJob {
         savedAt = record.savedAt
         appliedAt = record.appliedAt
         updatedAt = record.updatedAt
+        followUpAt = record.followUpAt
         // Keep the richer local snapshot if the server one is empty
         if !record.jobSnapshot.title.isEmpty { snapshot = record.jobSnapshot }
         syncState = .synced
@@ -134,6 +137,7 @@ struct TrackedApplication: Identifiable, Equatable {
     let savedAt: Date
     let appliedAt: Date?
     let updatedAt: Date
+    let followUpAt: Date?
     let snapshot: JobSnapshot
     let isPendingSync: Bool
 
@@ -147,8 +151,19 @@ struct TrackedApplication: Identifiable, Equatable {
         savedAt = model.savedAt
         appliedAt = model.appliedAt
         updatedAt = model.updatedAt
+        followUpAt = model.followUpAt
         snapshot = model.snapshot
         isPendingSync = model.syncState != .synced
+    }
+
+    /// Applied at least `days` ago, still Applied, and not followed up in the
+    /// last `days` days: time for a gentle follow-up (at most once a week).
+    func isFollowUpDue(now: Date = Date(), days: Int = 7) -> Bool {
+        guard status == .applied, let appliedAt else { return false }
+        let cutoff = now.addingTimeInterval(-Double(days) * 24 * 60 * 60)
+        guard appliedAt <= cutoff else { return false }
+        if let followUpAt { return followUpAt <= cutoff }
+        return true
     }
 
     /// The job as the rest of the app shows it (from the saved snapshot).
