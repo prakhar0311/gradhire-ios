@@ -9,6 +9,7 @@ struct AccountButton: View {
 
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var resumeManager: ResumeManager
+    @EnvironmentObject private var tracker: TrackerStore
     @State private var showAccount = false
 
     var body: some View {
@@ -33,6 +34,7 @@ struct AccountButton: View {
             AccountView()
                 .environmentObject(auth)
                 .environmentObject(resumeManager)
+                .environmentObject(tracker)
         }
     }
 }
@@ -41,11 +43,18 @@ struct AccountButton: View {
 
 struct AccountView: View {
 
+    /// Why sign-in was asked for (e.g. a guest tapped bookmark)
+    var reason: String? = nil
+    /// Close the sheet once signed in, so the user is back where they were
+    var dismissOnSignIn = false
+
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var resumeManager: ResumeManager
+    @EnvironmentObject private var tracker: TrackerStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var confirmDelete = false
+    @State private var confirmSignOut = false
 
     var body: some View {
         NavigationStack {
@@ -94,6 +103,21 @@ struct AccountView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onChange(of: auth.user?.id) { _, id in
+            // Wait for the resume question (if any) before closing
+            if dismissOnSignIn, id != nil, !auth.offerResumeSave { dismiss() }
+        }
+        .onChange(of: auth.offerResumeSave) { _, offering in
+            if dismissOnSignIn, !offering, auth.user != nil { dismiss() }
+        }
+        .alert("Sign out with unsynced changes?", isPresented: $confirmSignOut) {
+            Button("Sign Out", role: .destructive) {
+                Task { await auth.signOut() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(tracker.pendingCount) tracker change\(tracker.pendingCount == 1 ? "" : "s") haven't synced yet and will be lost. Connect to the internet first to keep them.")
+        }
         .alert(
             "Something went wrong",
             isPresented: Binding(
@@ -151,10 +175,12 @@ struct AccountView: View {
             .padding(.top, 12)
 
             VStack(spacing: 6) {
-                Text("Sign in to GradHire")
+                Text(reason ?? "Sign in to GradHire")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                Text("Keep your resume and saved jobs with your account. You can keep using GradHire as a guest.")
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Save jobs, track your applications and keep your resume with your account. You can keep using GradHire as a guest.")
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.45))
                     .multilineTextAlignment(.center)
@@ -241,7 +267,7 @@ struct AccountView: View {
             resumeStatus
 
             Button {
-                Task { await auth.signOut() }
+                Task { await signOut() }
             } label: {
                 Text("Sign Out")
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -296,6 +322,18 @@ struct AccountView: View {
     }
 
     // MARK: Helpers
+
+    /// Tries to sync tracker changes first; asks before losing any.
+    private func signOut() async {
+        if tracker.pendingCount > 0 {
+            await tracker.sync()
+            if tracker.pendingCount > 0 {
+                confirmSignOut = true
+                return
+            }
+        }
+        await auth.signOut()
+    }
 
     private func initials(for user: AuthUser) -> String {
         let source = user.name ?? user.email ?? "G"

@@ -1,42 +1,28 @@
 import Foundation
-import Combine
 
-final class BookmarkManager: ObservableObject {
+// MARK: - Legacy Bookmarks
 
-    // Full jobs are stored (newest first) so saved jobs survive new searches
-    // and app restarts, not just the list they were saved from.
-    @Published private(set) var savedJobs: [Job] = []
+/// Jobs bookmarked on this device before the tracker existed (stored in
+/// UserDefaults). They're imported into the signed-in user's tracker as
+/// Saved, once, and then removed from the device.
+enum LegacyBookmarks {
 
-    private let key = "saved_jobs_v2"
-    private let legacyKey = "saved_jobs" // IDs only; those IDs were random per request
+    private static let key = "saved_jobs_v2"
+    private static let olderKey = "saved_jobs" // IDs only; those IDs were random per request
 
-    init() {
-        load()
+    static var count: Int { load().count }
+
+    /// Returns the bookmarked jobs and removes them from the device.
+    static func take() -> [Job] {
+        let jobs = load()
+        UserDefaults.standard.removeObject(forKey: key)
+        UserDefaults.standard.removeObject(forKey: olderKey)
+        return jobs
     }
 
-    func isSaved(_ job: Job) -> Bool {
-        savedJobs.contains { $0.id == job.id }
-    }
-
-    func toggle(_ job: Job) {
-        if isSaved(job) {
-            savedJobs.removeAll { $0.id == job.id }
-        } else {
-            savedJobs.insert(job, at: 0)
-        }
-        persist()
-    }
-
-    private func persist() {
-        guard let data = try? Job.encoder.encode(savedJobs) else { return }
-        UserDefaults.standard.set(data, forKey: key)
-    }
-
-    private func load() {
-        UserDefaults.standard.removeObject(forKey: legacyKey)
-
+    private static func load() -> [Job] {
         guard let data = UserDefaults.standard.data(forKey: key),
-              let jobs = try? Job.decoder.decode([Job].self, from: data) else { return }
-        savedJobs = jobs
+              let jobs = try? Job.decoder.decode([Job].self, from: data) else { return [] }
+        return jobs
     }
 }

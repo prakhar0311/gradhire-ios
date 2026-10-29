@@ -5,16 +5,14 @@ struct UploadResumeView: View {
 
     @EnvironmentObject var resumeManager: ResumeManager
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
+    @EnvironmentObject private var router: AppRouter
 
     @State private var showPicker = false
     @State private var selectedFileName: String?
-    @State private var goToJobs = false
     @State private var isUploading = false
     @State private var errorMessage: String?
-    @State private var jobsTab: JobsTab = .forYou
     @StateObject private var network = NetworkMonitor.shared
     @State private var showRetry = false
-    @State private var selectedCountry = "in"
     @State private var animate = false
     @State private var showSlowServerHint = false
     @State private var showAIConsent = false
@@ -35,12 +33,13 @@ struct UploadResumeView: View {
     ]
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
+        ZStack(alignment: .top) {
 
-                Color(red: 0.04, green: 0.04, blue: 0.06)
-                    .ignoresSafeArea()
+            Color(red: 0.04, green: 0.04, blue: 0.06)
+                .ignoresSafeArea()
 
+            // Scrolls so nothing ends up under the tab bar on smaller screens
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
                     // HERO
@@ -136,50 +135,40 @@ struct UploadResumeView: View {
                     .padding(.bottom, 32)
                     .frame(maxWidth: .infinity)
                     .background(Color(red: 0.04, green: 0.04, blue: 0.06))
-
-                    NavigationLink(
-                        destination: JobListView(country: selectedCountry, selectedTab: $jobsTab),
-                        isActive: $goToJobs
-                    ) { EmptyView() }
                 }
             }
-            .ignoresSafeArea(.all, edges: .top)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    AccountButton()
-                }
+        }
+        .ignoresSafeArea(.all, edges: .top)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                AccountButton()
             }
-            .onAppear {
-                withAnimation(.easeOut(duration: 0.9)) { animate = true }
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(
-                    for: NSNotification.Name("GO_TO_ROOT")
-                )
-            ) { _ in goToJobs = false }
-            .fileImporter(
-                isPresented: $showPicker,
-                allowedContentTypes: [.pdf],
-                allowsMultipleSelection: false,
-                onCompletion: handleFileImport
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.9)) { animate = true }
+        }
+        .fileImporter(
+            isPresented: $showPicker,
+            allowedContentTypes: [.pdf],
+            allowsMultipleSelection: false,
+            onCompletion: handleFileImport
+        )
+        .sheet(isPresented: $showAIConsent) {
+            AIConsentSheet(
+                onAgree: {
+                    hasAIConsent = true
+                    showAIConsent = false
+                    // Let the sheet finish dismissing before presenting the picker
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        showPicker = true
+                    }
+                },
+                onCancel: { showAIConsent = false }
             )
-            .sheet(isPresented: $showAIConsent) {
-                AIConsentSheet(
-                    onAgree: {
-                        hasAIConsent = true
-                        showAIConsent = false
-                        // Let the sheet finish dismissing before presenting the picker
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                            showPicker = true
-                        }
-                    },
-                    onCancel: { showAIConsent = false }
-                )
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
         }
     }
 
@@ -197,9 +186,9 @@ struct UploadResumeView: View {
                 ForEach(countries) { country in
                     CountryButton(
                         country: country,
-                        isSelected: selectedCountry == country.code,
+                        isSelected: router.country == country.code,
                         onTap: {
-                            if country.enabled { selectedCountry = country.code }
+                            if country.enabled { router.country = country.code }
                         }
                     )
                     .disabled(!country.enabled)
@@ -271,8 +260,8 @@ struct UploadResumeView: View {
 
     private var browseAllJobsButton: some View {
         Button {
-            jobsTab = .allJobs
-            goToJobs = true
+            router.jobsTab = .allJobs
+            router.tab = .jobs
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "briefcase.fill")
@@ -501,9 +490,9 @@ struct UploadResumeView: View {
                             resumeManager.resumeText = resumeText
 
                             // Matching loads on the jobs screen (skeletons, error, empty states)
-                            matchedJobs.load(resumeURL: localURL, country: selectedCountry)
-                            jobsTab = .forYou
-                            goToJobs = true
+                            matchedJobs.load(resumeURL: localURL, country: router.country)
+                            router.jobsTab = .forYou
+                            router.tab = .jobs
                         }
                     }
                 }
@@ -665,8 +654,11 @@ private struct AIConsentSheet: View {
 }
 
 #Preview {
-    UploadResumeView()
-        .environmentObject(ResumeManager())
-        .environmentObject(MatchedJobsViewModel())
+    NavigationStack {
+        UploadResumeView()
+    }
+    .environmentObject(ResumeManager())
+    .environmentObject(MatchedJobsViewModel())
+    .environmentObject(AppRouter())
 }
 

@@ -33,11 +33,15 @@
 		F4A1B0632FC0000100A1B0C1 /* SignInProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */; };
 		F4A1B0652FC0000100A1B0C1 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0642FC0000100A1B0C1 /* AuthViewModel.swift */; };
 		F4A1B0672FC0000100A1B0C1 /* AccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0662FC0000100A1B0C1 /* AccountView.swift */; };
+		F4A1B06A2FC0000100A1B0C1 /* TrackedJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0692FC0000100A1B0C1 /* TrackedJob.swift */; };
+		F4A1B06C2FC0000100A1B0C1 /* TrackerStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */; };
+		F4A1B06E2FC0000100A1B0C1 /* RootTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B06D2FC0000100A1B0C1 /* RootTabView.swift */; };
+		F4A1B0702FC0000100A1B0C1 /* TrackerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B06F2FC0000100A1B0C1 /* TrackerView.swift */; };
+		F4A1B0722FC0000100A1B0C1 /* TrackerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0712FC0000100A1B0C1 /* TrackerDetailView.swift */; };
+		F4A1B0742FC0000100A1B0C1 /* TrackerComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0732FC0000100A1B0C1 /* TrackerComponents.swift */; };
 		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
 		F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */; };
 		F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */; };
-		F4DF0DC82F2DEC4600961C4A /* SavedJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */; };
-		F4DF0DCA2F2DEC7E00961C4A /* EmptySavedState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */; };
 		F4DF0DCD2F2E1CB000961C4A /* EmptyJobResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */; };
 		F4DF0DCF2F2E1F7D00961C4A /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */; };
 		F4DF0DD22F2E2ABB00961C4A /* SkeletonJobCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */; };
@@ -92,11 +96,15 @@
 		F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInProviders.swift; sourceTree = "<group>"; };
 		F4A1B0642FC0000100A1B0C1 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		F4A1B0662FC0000100A1B0C1 /* AccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountView.swift; sourceTree = "<group>"; };
+		F4A1B0692FC0000100A1B0C1 /* TrackedJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackedJob.swift; sourceTree = "<group>"; };
+		F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackerStore.swift; sourceTree = "<group>"; };
+		F4A1B06D2FC0000100A1B0C1 /* RootTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTabView.swift; sourceTree = "<group>"; };
+		F4A1B06F2FC0000100A1B0C1 /* TrackerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackerView.swift; sourceTree = "<group>"; };
+		F4A1B0712FC0000100A1B0C1 /* TrackerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackerDetailView.swift; sourceTree = "<group>"; };
+		F4A1B0732FC0000100A1B0C1 /* TrackerComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackerComponents.swift; sourceTree = "<group>"; };
 		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkManager.swift; sourceTree = "<group>"; };
-		F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedJobsView.swift; sourceTree = "<group>"; };
-		F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptySavedState.swift; sourceTree = "<group>"; };
 		F4DF0DCC2F2E1CB000961C4A /* EmptyJobResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyJobResultView.swift; sourceTree = "<group>"; };
 		F4DF0DCE2F2E1F7D00961C4A /* ErrorStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorStateView.swift; sourceTree = "<group>"; };
 		F4DF0DD12F2E2ABB00961C4A /* SkeletonJobCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonJobCard.swift; sourceTree = "<group>"; };
@@ -198,9 +206,10 @@
 				F4A1B0682FC0000100A1B0C1 /* Account */,
 				F4DF0DD02F2E2A9B00961C4A /* Components */,
 				F4DF0DCB2F2E1C9000961C4A /* States */,
-				F4DF0DC62F2DEC1E00961C4A /* Saved */,
+				F4DF0DC62F2DEC1E00961C4A /* Tracker */,
 				F40D62552F28DDC4004651FB /* UploadResumeView.swift */,
 				F40D62592F28E065004651FB /* JobListView.swift */,
+				F4A1B06D2FC0000100A1B0C1 /* RootTabView.swift */,
 				F40D625B2F28E15E004651FB /* JobDetailView.swift */,
 				F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */,
 				F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */,
@@ -214,6 +223,7 @@
 				F4A1B0052FC0000100A1B0C1 /* JobFilters.swift */,
 				F4A1B03A2FC0000100A1B0C1 /* Database */,
 				F40D62572F28E03E004651FB /* Job.swift */,
+				F4A1B0692FC0000100A1B0C1 /* TrackedJob.swift */,
 				F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */,
 			);
 			path = Models;
@@ -226,6 +236,7 @@
 				F4C820512F34E1390068DBAA /* NetworkMonitor.swift */,
 				F4A1B0302FC0000100A1B0C1 /* SupabaseManager.swift */,
 				F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */,
+				F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -286,13 +297,14 @@
 			path = Managers;
 			sourceTree = "<group>";
 		};
-		F4DF0DC62F2DEC1E00961C4A /* Saved */ = {
+		F4DF0DC62F2DEC1E00961C4A /* Tracker */ = {
 			isa = PBXGroup;
 			children = (
-				F4DF0DC72F2DEC4600961C4A /* SavedJobsView.swift */,
-				F4DF0DC92F2DEC7E00961C4A /* EmptySavedState.swift */,
+				F4A1B06F2FC0000100A1B0C1 /* TrackerView.swift */,
+				F4A1B0712FC0000100A1B0C1 /* TrackerDetailView.swift */,
+				F4A1B0732FC0000100A1B0C1 /* TrackerComponents.swift */,
 			);
-			path = Saved;
+			path = Tracker;
 			sourceTree = "<group>";
 		};
 		F4DF0DCB2F2E1C9000961C4A /* States */ = {
@@ -480,6 +492,12 @@
 				F4A1B00A2FC0000100A1B0C1 /* OptimizeResumeViewModel.swift in Sources */,
 				F4A1B0392FC0000100A1B0C1 /* ApplicationRepository.swift in Sources */,
 				F4A1B0672FC0000100A1B0C1 /* AccountView.swift in Sources */,
+				F4A1B06A2FC0000100A1B0C1 /* TrackedJob.swift in Sources */,
+				F4A1B06C2FC0000100A1B0C1 /* TrackerStore.swift in Sources */,
+				F4A1B06E2FC0000100A1B0C1 /* RootTabView.swift in Sources */,
+				F4A1B0702FC0000100A1B0C1 /* TrackerView.swift in Sources */,
+				F4A1B0722FC0000100A1B0C1 /* TrackerDetailView.swift in Sources */,
+				F4A1B0742FC0000100A1B0C1 /* TrackerComponents.swift in Sources */,
 				F4A1B0652FC0000100A1B0C1 /* AuthViewModel.swift in Sources */,
 				F4A1B0632FC0000100A1B0C1 /* SignInProviders.swift in Sources */,
 				F4A1B0612FC0000100A1B0C1 /* AuthRepository.swift in Sources */,
@@ -499,8 +517,6 @@
 				F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */,
 				F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */,
 				F40D62642F2A5510004651FB /* ResumeOptimizationResponse.swift in Sources */,
-				F4DF0DCA2F2DEC7E00961C4A /* EmptySavedState.swift in Sources */,
-				F4DF0DC82F2DEC4600961C4A /* SavedJobsView.swift in Sources */,
 				F40D625A2F28E065004651FB /* JobListView.swift in Sources */,
 				F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */,
 				F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */,

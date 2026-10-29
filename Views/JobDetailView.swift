@@ -5,7 +5,8 @@ struct JobDetailView: View {
     let job: Job
 
     @EnvironmentObject var resumeManager: ResumeManager
-    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var tracker: TrackerStore
+    @EnvironmentObject private var router: AppRouter
 
     @State private var showFullDescription = false
     @State private var showSafari = false
@@ -102,11 +103,6 @@ struct JobDetailView: View {
                     descriptionCard
                     actionButtons
 
-                    NavigationLink(
-                        destination: OptimizeResumeView(job: job),
-                        isActive: $navigateToOptimize
-                    ) { EmptyView() }
-
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 16)
@@ -126,13 +122,16 @@ struct JobDetailView: View {
                     .tracking(1.5)
                     .foregroundColor(.white.opacity(0.35))
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                TrackJobButton(job: job)
+            }
+        }
+        .navigationDestination(isPresented: $navigateToOptimize) {
+            OptimizeResumeView(job: job)
         }
         .alert("Upload Your Resume", isPresented: $showUploadAlert) {
             Button("Upload Resume") {
-                NotificationCenter.default.post(
-                    name: NSNotification.Name("GO_TO_ROOT"),
-                    object: nil
-                )
+                router.tab = .resume
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -191,12 +190,18 @@ private extension JobDetailView {
                     }
                 }
 
-                if let postedAgo = job.postedAgoText {
+                let status = tracker.status(for: job.id)
+                if status != nil || job.postedAgoText != nil {
                     HStack(spacing: 6) {
+                        if let status {
+                            StatusBadge(status: status)
+                        }
                         if let contract = job.contractLabel {
                             DarkTag(text: contract, teal: false)
                         }
-                        DarkTag(text: postedAgo, teal: true)
+                        if let postedAgo = job.postedAgoText {
+                            DarkTag(text: postedAgo, teal: true)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -296,7 +301,10 @@ private extension JobDetailView {
 
             // Apply button
             if let url = URL(string: job.applyURL), !job.applyURL.isEmpty {
-                Button { showSafari = true } label: {
+                Button {
+                    tracker.applyOpened(job, externally: false)
+                    showSafari = true
+                } label: {
                     HStack {
                         Spacer()
                         Image(systemName: "arrow.up.right.square.fill")
@@ -314,7 +322,9 @@ private extension JobDetailView {
                     .foregroundColor(.white.opacity(0.8))
                     .cornerRadius(16)
                 }
-                .sheet(isPresented: $showSafari) {
+                .sheet(isPresented: $showSafari, onDismiss: {
+                    tracker.checkApplyPrompt(fromForeground: false)
+                }) {
                     SafariView(url: url)
                 }
             }

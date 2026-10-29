@@ -155,6 +155,7 @@ nonisolated struct ApplicationRecord: Codable, Sendable, Identifiable {
     var appliedAt: Date?
     let updatedAt: Date
     var followUpAt: Date?
+    var jobSnapshot: JobSnapshot
 
     enum CodingKeys: String, CodingKey {
         case id, status, notes
@@ -165,6 +166,111 @@ nonisolated struct ApplicationRecord: Codable, Sendable, Identifiable {
         case appliedAt = "applied_at"
         case updatedAt = "updated_at"
         case followUpAt = "follow_up_at"
+        case jobSnapshot = "job_snapshot"
+    }
+}
+
+extension ApplicationRecord {
+
+    nonisolated init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        userId = try container.decode(UUID.self, forKey: .userId)
+        jobId = try container.decode(UUID.self, forKey: .jobId)
+        status = try container.decode(ApplicationStatus.self, forKey: .status)
+        resumeId = try container.decodeIfPresent(UUID.self, forKey: .resumeId)
+        notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        savedAt = try container.decode(Date.self, forKey: .savedAt)
+        appliedAt = try container.decodeIfPresent(Date.self, forKey: .appliedAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        followUpAt = try container.decodeIfPresent(Date.self, forKey: .followUpAt)
+        // A malformed snapshot must not hide the application
+        jobSnapshot = (try? container.decodeIfPresent(JobSnapshot.self, forKey: .jobSnapshot)) ?? JobSnapshot()
+    }
+}
+
+/// The key job fields saved with an application, so a tracked job still
+/// displays after it closes or disappears from Adzuna.
+nonisolated struct JobSnapshot: Codable, Sendable, Equatable {
+    var title: String = ""
+    var company: String = ""
+    var location: String = ""
+    var applyURL: String = ""
+    var postedAt: Date?
+    var contractTime: String?
+    var matchScore: Int?
+    var description: String = ""
+
+    /// The description is shortened to keep the row small.
+    static let descriptionLimit = 4000
+
+    enum CodingKeys: String, CodingKey {
+        case title, company, location, description
+        case applyURL = "apply_url"
+        case postedAt = "posted_at"
+        case contractTime = "contract_time"
+        case matchScore = "match_score"
+    }
+
+    init() {}
+
+    init(
+        title: String, company: String, location: String, applyURL: String,
+        postedAt: Date?, contractTime: String?, matchScore: Int?, description: String
+    ) {
+        self.title = title
+        self.company = company
+        self.location = location
+        self.applyURL = applyURL
+        self.postedAt = postedAt
+        self.contractTime = contractTime
+        self.matchScore = matchScore
+        self.description = String(description.prefix(Self.descriptionLimit))
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        title = (try? container.decodeIfPresent(String.self, forKey: .title)) ?? ""
+        company = (try? container.decodeIfPresent(String.self, forKey: .company)) ?? ""
+        location = (try? container.decodeIfPresent(String.self, forKey: .location)) ?? ""
+        applyURL = (try? container.decodeIfPresent(String.self, forKey: .applyURL)) ?? ""
+        postedAt = try? container.decodeIfPresent(Date.self, forKey: .postedAt)
+        contractTime = try? container.decodeIfPresent(String.self, forKey: .contractTime)
+        matchScore = try? container.decodeIfPresent(Int.self, forKey: .matchScore)
+        description = (try? container.decodeIfPresent(String.self, forKey: .description)) ?? ""
+    }
+}
+
+/// Insert-or-update payload for a tracked job (one row per user and job).
+/// follow_up_at and resume_id are left out, so a sync never clears them.
+nonisolated struct ApplicationUpsert: Encodable, Sendable {
+    let userId: UUID
+    let jobId: UUID
+    let status: ApplicationStatus
+    let notes: String?
+    let savedAt: Date
+    let appliedAt: Date?
+    let jobSnapshot: JobSnapshot
+
+    enum CodingKeys: String, CodingKey {
+        case status, notes
+        case userId = "user_id"
+        case jobId = "job_id"
+        case savedAt = "saved_at"
+        case appliedAt = "applied_at"
+        case jobSnapshot = "job_snapshot"
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(userId, forKey: .userId)
+        try container.encode(jobId, forKey: .jobId)
+        try container.encode(status, forKey: .status)
+        // Explicit nulls, so clearing notes or moving back to Saved syncs too
+        try container.encode(notes, forKey: .notes)
+        try container.encode(savedAt, forKey: .savedAt)
+        try container.encode(appliedAt, forKey: .appliedAt)
+        try container.encode(jobSnapshot, forKey: .jobSnapshot)
     }
 }
 

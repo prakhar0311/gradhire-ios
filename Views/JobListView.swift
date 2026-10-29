@@ -17,10 +17,12 @@ struct JobListView: View {
     let country: String
     @Binding var selectedTab: JobsTab
 
-    @EnvironmentObject private var bookmarks: BookmarkManager
+    @EnvironmentObject private var tracker: TrackerStore
+    @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var allJobs: AllJobsViewModel
-    @Environment(\.dismiss) private var dismiss
+
+    @State private var confirmRemove: Job?
 
     var body: some View {
         ZStack {
@@ -94,23 +96,10 @@ struct JobListView: View {
                     .foregroundColor(.white.opacity(0.35))
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 8) {
-                    NavigationLink(destination: SavedJobsView()) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.white.opacity(0.07))
-                                .frame(width: 34, height: 34)
-                            Image(systemName: "bookmark.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.6))
-                        }
-                    }
-                    .accessibilityLabel("Saved jobs")
-
-                    AccountButton()
-                }
+                AccountButton()
             }
         }
+        .removeTrackedJobDialog(job: $confirmRemove)
         .onAppear {
             if selectedTab == .allJobs {
                 allJobs.loadIfNeeded(country: country)
@@ -155,7 +144,7 @@ struct JobListView: View {
                 title: "Get matched to jobs",
                 message: "Upload your resume to see roles matched to your skills.",
                 actionTitle: "Upload Resume",
-                action: { dismiss() }
+                action: { router.tab = .resume }
             )
             .padding(.horizontal, 16)
 
@@ -263,6 +252,14 @@ struct JobListView: View {
 
     // MARK: - Shared Rows
 
+    private func bookmarkTapped(_ job: Job) {
+        if tracker.needsRemoveConfirmation(job.id) {
+            confirmRemove = job
+        } else {
+            tracker.toggleSave(job)
+        }
+    }
+
     private var skeletonList: some View {
         ForEach(0..<5, id: \.self) { _ in
             DarkSkeletonCard()
@@ -279,8 +276,8 @@ struct JobListView: View {
             NavigationLink(destination: JobDetailView(job: item.job)) {
                 DarkJobCard(
                     job: item.job,
-                    isSaved: bookmarks.isSaved(item.job),
-                    onBookmarkTap: { bookmarks.toggle(item.job) }
+                    status: tracker.status(for: item.job.id),
+                    onBookmarkTap: { bookmarkTapped(item.job) }
                 )
             }
             .buttonStyle(.plain)
@@ -352,10 +349,12 @@ struct JobsTabPicker: View {
 struct DarkJobCard: View {
 
     let job: Job
-    let isSaved: Bool
+    let status: ApplicationStatus?
     let onBookmarkTap: () -> Void
 
     @State private var pulse = false
+
+    private var isSaved: Bool { status != nil }
 
     private var iconColor: Color {
         switch job.matchScore {
@@ -433,8 +432,11 @@ struct DarkJobCard: View {
                     .padding(.bottom, 6)
 
                 // Real metadata from the posting (shown only when Adzuna provides it)
-                if job.contractLabel != nil || job.postedAgoText != nil {
+                if status != nil || job.contractLabel != nil || job.postedAgoText != nil {
                     HStack(spacing: 6) {
+                        if let status {
+                            StatusBadge(status: status)
+                        }
                         if let contract = job.contractLabel {
                             DarkTag(text: contract, teal: false)
                         }
@@ -455,12 +457,16 @@ struct DarkJobCard: View {
                 }) {
                     Image(systemName: isSaved ? "bookmark.fill" : "bookmark")
                         .font(.system(size: 17, weight: .semibold))
+                        .contentTransition(.symbolEffect(.replace))
                         .foregroundColor(
                             isSaved
                             ? Color(red: 0.0, green: 0.83, blue: 0.67)
                             : .white.opacity(0.3)
                         )
+                        .frame(width: 34, height: 34)
+                        .contentShape(Rectangle())
                 }
+                .accessibilityLabel(isSaved ? "Remove from tracker" : "Save to tracker")
 
                 if let matchScore = job.matchScore {
                     DarkMatchRing(score: matchScore)
@@ -835,7 +841,7 @@ struct DarkInlineBanner: View {
     NavigationStack {
         JobListView(country: "in", selectedTab: .constant(.allJobs))
     }
-    .environmentObject(BookmarkManager())
+    .environmentObject(AppRouter())
     .environmentObject(MatchedJobsViewModel())
     .environmentObject(AllJobsViewModel())
 }

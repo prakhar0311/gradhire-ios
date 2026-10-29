@@ -10,6 +10,8 @@ struct OptimizeResumeView: View {
     let job: Job
     @EnvironmentObject var resumeManager: ResumeManager
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
+    @EnvironmentObject private var tracker: TrackerStore
+    @Environment(\.openURL) private var openURL
     @StateObject private var network = NetworkMonitor.shared
     @StateObject private var viewModel: OptimizeResumeViewModel
 
@@ -385,7 +387,11 @@ private extension OptimizeResumeView {
             }
 
             if let url = URL(string: job.applyURL) {
-                Link(destination: url) {
+                // Opens Safari; "Did you apply?" is asked when the app is back
+                Button {
+                    tracker.applyOpened(job, externally: true)
+                    openURL(url)
+                } label: {
                     HStack {
                         Spacer()
                         Text("Apply Now")

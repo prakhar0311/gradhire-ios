@@ -16,6 +16,7 @@ nonisolated enum APIConstants {
 
     // MARK: - Account
     static let deleteAccount = "\(baseURL)/account"
+    static let ensureJob = "\(baseURL)/jobs/ensure"
 
     // MARK: - Jobs
     static let jobsFromResume = "\(baseURL)/jobs/from-resume"
