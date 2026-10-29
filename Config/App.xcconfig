@@ -8,4 +8,10 @@
 SUPABASE_URL =
 SUPABASE_PUBLISHABLE_KEY =
 
+// Google Sign-In. The scheme default is a harmless placeholder so Info.plist
+// always has a valid URL type; Google sign-in reports "not configured" until
+// real values are set in Secrets.xcconfig.
+GOOGLE_IOS_CLIENT_ID =
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.not-configured
+
 #include? "Secrets.xcconfig"

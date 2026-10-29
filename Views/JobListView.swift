@@ -94,15 +94,20 @@ struct JobListView: View {
                     .foregroundColor(.white.opacity(0.35))
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: SavedJobsView()) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.07))
-                            .frame(width: 34, height: 34)
-                        Image(systemName: "bookmark.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.6))
+                HStack(spacing: 8) {
+                    NavigationLink(destination: SavedJobsView()) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white.opacity(0.07))
+                                .frame(width: 34, height: 34)
+                            Image(systemName: "bookmark.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.6))
+                        }
                     }
+                    .accessibilityLabel("Saved jobs")
+
+                    AccountButton()
                 }
             }
         }

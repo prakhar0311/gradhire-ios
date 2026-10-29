@@ -1,6 +1,7 @@
 import Foundation
 
-enum APIConstants {
+// Constant URLs only; nonisolated so repositories off the main actor can read them.
+nonisolated enum APIConstants {
 
     // ✅ Railway Backend Base URL
     static let baseURL = "https://gradhire-backend.onrender.com"
@@ -12,6 +13,9 @@ enum APIConstants {
     static let optimizeResume = "\(baseURL)/resume/optimize"
     static let downloadResume = "\(baseURL)/resume/download"
     static let scoreResume = "\(baseURL)/resume/score"
+
+    // MARK: - Account
+    static let deleteAccount = "\(baseURL)/account"
 
     // MARK: - Jobs
     static let jobsFromResume = "\(baseURL)/jobs/from-resume"

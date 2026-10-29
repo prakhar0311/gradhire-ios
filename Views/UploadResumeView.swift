@@ -146,6 +146,11 @@ struct UploadResumeView: View {
             .ignoresSafeArea(.all, edges: .top)
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    AccountButton()
+                }
+            }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.9)) { animate = true }
             }
@@ -411,7 +416,7 @@ struct UploadResumeView: View {
             ForEach(
                 [
                     ("lock.shield.fill", "Secure Upload"),
-                    ("eye.slash.fill",   "Not stored by us"),
+                    ("eye.slash.fill",   "Saved only by choice"),
                     ("doc.fill",         "PDF only")
                 ],
                 id: \.0
@@ -607,7 +612,7 @@ private struct AIConsentSheet: View {
                     )
                     consentPoint(
                         icon: "trash",
-                        text: "GradHire doesn't keep your resume on its servers after processing it."
+                        text: "GradHire doesn't keep your resume unless you sign in and choose to save it to your account."
                     )
                 }
 

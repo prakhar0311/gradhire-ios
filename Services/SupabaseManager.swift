@@ -14,6 +14,7 @@ final class SupabaseManager: ObservableObject {
 
     nonisolated let client: SupabaseClient?
 
+    let auth: any AuthRepository
     let jobs: any JobRepository
     let resumes: any ResumeRepository
     let applications: any ApplicationRepository
@@ -23,6 +24,7 @@ final class SupabaseManager: ObservableObject {
     init(bundle: Bundle = .main) {
         let client = Self.makeClient(bundle: bundle)
         self.client = client
+        self.auth = SupabaseAuthRepository(client: client)
         self.jobs = SupabaseJobRepository(client: client)
         self.resumes = SupabaseResumeRepository(client: client)
         self.applications = SupabaseApplicationRepository(client: client)
