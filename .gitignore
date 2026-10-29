@@ -2,5 +2,16 @@ gradhire-backend/
 DerivedData/
 build/
 .DS_Store
-*.xcworkspace
 xcuserdata/
+
+# Workspaces are ignored, except Swift Package Manager's Package.resolved
+# inside the project's own workspace, which pins package versions.
+*.xcworkspace
+!GradHire.xcodeproj/project.xcworkspace/
+GradHire.xcodeproj/project.xcworkspace/*
+!GradHire.xcodeproj/project.xcworkspace/xcshareddata/
+GradHire.xcodeproj/project.xcworkspace/xcshareddata/*
+!GradHire.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# Real Supabase URL and publishable key (see Config/Secrets.example.xcconfig)
+Config/Secrets.xcconfig

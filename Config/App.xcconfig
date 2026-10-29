@@ -1,0 +1,11 @@
+// Build settings for the GradHire app target (Debug and Release).
+//
+// Supabase values are read from Info.plist at runtime (see SupabaseManager).
+// Real values live in Secrets.xcconfig, which is gitignored. The include is
+// optional (#include?), so a fresh clone still builds without it; Supabase
+// then reports "not configured" and the rest of the app works as before.
+
+SUPABASE_URL =
+SUPABASE_PUBLISHABLE_KEY =
+
+#include? "Secrets.xcconfig"
