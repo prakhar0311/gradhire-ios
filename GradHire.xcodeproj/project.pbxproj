@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */; };
+		F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */; };
 		F40D62562F28DDC4004651FB /* UploadResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62552F28DDC4004651FB /* UploadResumeView.swift */; };
 		F40D62582F28E03E004651FB /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62572F28E03E004651FB /* Job.swift */; };
 		F40D625A2F28E065004651FB /* JobListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62592F28E065004651FB /* JobListView.swift */; };
@@ -73,6 +75,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViews.swift; sourceTree = "<group>"; };
+		F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViewModel.swift; sourceTree = "<group>"; };
 		F40D62272F28DCA7004651FB /* GradHire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GradHire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40D62342F28DCA8004651FB /* GradHireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40D623E2F28DCA8004651FB /* GradHireUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -264,6 +268,7 @@
 				F4A1B0642FC0000100A1B0C1 /* AuthViewModel.swift */,
 				F4A1B07B2FC0000100A1B0C1 /* DashboardViewModel.swift */,
 				F4A1B0012FC0000100A1B0C1 /* MatchedJobsViewModel.swift */,
+				F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */,
 				F4A1B0032FC0000100A1B0C1 /* AllJobsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -346,6 +351,7 @@
 			children = (
 				F4A1B0802FC0000100A1B0C1 /* AppTheme.swift */,
 				F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */,
+				F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */,
 				F4A1B0072FC0000100A1B0C1 /* JobsFilterBar.swift */,
 				F47760112F3A250700FFE828 /* ShareSheet.swift */,
 			);
@@ -515,6 +521,8 @@
 				F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */,
 				F4A1B0022FC0000100A1B0C1 /* MatchedJobsViewModel.swift in Sources */,
 				F4A1B0042FC0000100A1B0C1 /* AllJobsViewModel.swift in Sources */,
+				F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */,
+				F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */,
 				F4A1B00A2FC0000100A1B0C1 /* OptimizeResumeViewModel.swift in Sources */,
 				F4A1B0392FC0000100A1B0C1 /* ApplicationRepository.swift in Sources */,
 				F4A1B0672FC0000100A1B0C1 /* AccountView.swift in Sources */,

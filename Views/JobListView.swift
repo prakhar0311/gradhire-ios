@@ -21,8 +21,10 @@ struct JobListView: View {
     @EnvironmentObject private var router: AppRouter
     @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var allJobs: AllJobsViewModel
+    @EnvironmentObject private var search: JobSearchViewModel
 
     @State private var confirmRemove: Job?
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         ZStack {
@@ -40,16 +42,18 @@ struct JobListView: View {
 
                     switch selectedTab {
                     case .forYou:  forYouContent
-                    case .allJobs: allJobsContent
+                    case .allJobs: allJobsSection
                     }
 
                     Spacer(minLength: 40)
                 }
                 .padding(.top, 16)
             }
+            .scrollDismissesKeyboard(.immediately)
             .refreshable {
                 switch selectedTab {
                 case .forYou:  await matchedJobs.refresh()
+                case .allJobs where search.isSearching: await search.refresh()
                 case .allJobs: await allJobs.refresh()
                 }
             }
@@ -73,12 +77,14 @@ struct JobListView: View {
         }
         .removeTrackedJobDialog(job: $confirmRemove)
         .onAppear {
+            search.setCountry(country)
             if selectedTab == .allJobs {
                 allJobs.loadIfNeeded(country: country)
             }
         }
         .onChange(of: selectedTab) { _, tab in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            searchFocused = false
             if tab == .allJobs {
                 allJobs.loadIfNeeded(country: country)
             }
@@ -157,6 +163,126 @@ struct JobListView: View {
     }
 
     // MARK: - All Jobs
+
+    private var showsSuggestions: Bool {
+        searchFocused && search.text.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    @ViewBuilder
+    private var allJobsSection: some View {
+        JobSearchField(text: $search.text, isFocused: $searchFocused, onSubmit: search.submit)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 14)
+
+        if showsSuggestions {
+            JobSearchSuggestions(
+                recentSearches: search.recentSearches,
+                onSelect: { term in
+                    search.select(term)
+                    searchFocused = false
+                },
+                onRemoveRecent: search.removeRecentSearch
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 16)
+        } else if search.isSearching {
+            searchContent
+        } else {
+            allJobsContent
+        }
+    }
+
+    // MARK: - Search Results
+
+    @ViewBuilder
+    private var searchContent: some View {
+        let query = search.activeQuery ?? ""
+
+        switch search.state {
+        case .idle, .loading:
+            skeletonList
+
+        case .failed(let message):
+            DarkErrorView(message: message, retryAction: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                search.retry()
+            })
+            .padding(.horizontal, 16)
+
+        case .empty:
+            VStack(spacing: 18) {
+                DarkEmptyView(
+                    icon: "magnifyingglass",
+                    title: "No jobs found for \u{201C}\(query)\u{201D}",
+                    message: "Try a broader term, like a role or a skill."
+                )
+                SearchChips(
+                    terms: JobSearchViewModel.suggestions.filter { $0.lowercased() != query.lowercased() },
+                    onSelect: { term in
+                        search.select(term)
+                        searchFocused = false
+                    }
+                )
+            }
+            .padding(.horizontal, 16)
+
+        case .loaded:
+            Text(searchCountText(query))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.45))
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+                .accessibilityAddTraits(.updatesFrequently)
+
+            if let refreshError = search.refreshError {
+                DarkInlineBanner(message: refreshError, onDismiss: search.dismissRefreshError)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+            }
+
+            jobRows(search.jobs, onOpen: search.resultOpened)
+
+            searchPaginationFooter
+        }
+    }
+
+    private func searchCountText(_ query: String) -> String {
+        let count = search.total
+        let number = search.totalIsExact ? "\(count)" : "\(count)+"
+        let noun = count == 1 && search.totalIsExact ? "job" : "jobs"
+        return "\(number) \(noun) for \u{201C}\(query)\u{201D}"
+    }
+
+    @ViewBuilder
+    private var searchPaginationFooter: some View {
+        if let loadMoreError = search.loadMoreError {
+            DarkInlineBanner(
+                message: loadMoreError,
+                actionTitle: "Retry",
+                action: search.retryLoadMore
+            )
+            .padding(.horizontal, 16)
+
+        } else if search.hasMore {
+            ProgressView()
+                .tint(AppTheme.violet)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .onAppear { search.loadMoreIfNeeded() }
+
+        } else {
+            Text("That's every match")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(.white.opacity(0.22))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+        }
+    }
+
+    // MARK: - Feed
 
     @ViewBuilder
     private var allJobsContent: some View {
@@ -240,7 +366,7 @@ struct JobListView: View {
         }
     }
 
-    private func jobRows(_ jobs: [Job]) -> some View {
+    private func jobRows(_ jobs: [Job], onOpen: (() -> Void)? = nil) -> some View {
         // Both tabs share one LazyVStack and a job has the same stable ID in
         // both lists, so scope row identity by tab; otherwise the lazy stack
         // can reuse a "For You" card (with its score) on the "All Jobs" tab.
@@ -253,6 +379,7 @@ struct JobListView: View {
                 )
             }
             .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded { onOpen?() })
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
         }

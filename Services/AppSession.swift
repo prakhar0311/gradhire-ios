@@ -52,6 +52,7 @@ final class AppSession: ObservableObject {
     private let dashboard: DashboardViewModel
     private let resumeManager: ResumeManager
     private let matchedJobs: MatchedJobsViewModel
+    private let search: JobSearchViewModel
     private let router: AppRouter
 
     private var cancellables = Set<AnyCancellable>()
@@ -64,6 +65,7 @@ final class AppSession: ObservableObject {
         dashboard: DashboardViewModel,
         resumeManager: ResumeManager,
         matchedJobs: MatchedJobsViewModel,
+        search: JobSearchViewModel,
         router: AppRouter
     ) {
         self.auth = auth
@@ -71,6 +73,7 @@ final class AppSession: ObservableObject {
         self.dashboard = dashboard
         self.resumeManager = resumeManager
         self.matchedJobs = matchedJobs
+        self.search = search
         self.router = router
     }
 
@@ -137,6 +140,7 @@ final class AppSession: ObservableObject {
             welcomeMessage = nil
 
             resumeManager.signedIn(userId: user.id) // keeps a guest's resume
+            search.signedIn(userId: user.id)
             tracker.authChanged(state)
             dashboard.authChanged(state)
 
@@ -169,6 +173,7 @@ final class AppSession: ObservableObject {
 
     func continueAsGuest() {
         welcomeMessage = nil
+        search.signedOut()
         router.reset(for: .guest)
         setPhase(.guest)
     }
@@ -214,6 +219,7 @@ final class AppSession: ObservableObject {
     private func clearLocalData() {
         resumeManager.signedOut()
         matchedJobs.reset()
+        search.signedOut()
         router.reset(for: .welcome)
         LaunchCleanup.removeUserData()
     }
@@ -270,6 +276,7 @@ enum LaunchCleanup {
         where key.hasPrefix("apply_prompted_") || key.hasPrefix("dashboard_last_visit_") {
             defaults.removeObject(forKey: key)
         }
+        JobSearchViewModel.removeAllStoredSearches(from: defaults)
         URLCache.shared.removeAllCachedResponses()
         clearTemporaryFiles()
     }

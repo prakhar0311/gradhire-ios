@@ -13,6 +13,7 @@ struct GradHireApp: App {
     @StateObject private var resumeManager: ResumeManager
     @StateObject private var matchedJobs: MatchedJobsViewModel
     @StateObject private var allJobs = AllJobsViewModel()
+    @StateObject private var jobSearch: JobSearchViewModel
     @StateObject private var supabase: SupabaseManager // the app's only Supabase client
     @StateObject private var auth: AuthViewModel
     @StateObject private var tracker: TrackerStore
@@ -44,12 +45,16 @@ struct GradHireApp: App {
         }
         _matchedJobs = StateObject(wrappedValue: matchedJobs)
 
+        let jobSearch = JobSearchViewModel()
+        _jobSearch = StateObject(wrappedValue: jobSearch)
+
         _session = StateObject(wrappedValue: AppSession(
             auth: auth,
             tracker: tracker,
             dashboard: dashboard,
             resumeManager: resumeManager,
             matchedJobs: matchedJobs,
+            search: jobSearch,
             router: router
         ))
     }
@@ -60,6 +65,7 @@ struct GradHireApp: App {
                 .environmentObject(resumeManager)
                 .environmentObject(matchedJobs)
                 .environmentObject(allJobs)
+                .environmentObject(jobSearch)
                 .environmentObject(supabase)
                 .environmentObject(auth)
                 .environmentObject(tracker)

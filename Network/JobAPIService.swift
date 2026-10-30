@@ -44,6 +44,9 @@ struct NewGradJobsPage: Decodable {
     let page: Int
     let hasMore: Bool
     let total: Int? // older backends don't send it
+    /// Search only: false while more results may still be found, so `total`
+    /// is a lower bound
+    let totalIsExact: Bool?
 }
 
 // MARK: - Service
@@ -113,12 +116,26 @@ final class JobAPIService {
 
     // MARK: - Fetch All New Grad Jobs (Paginated)
 
+    /// `query` searches all entry-level jobs instead of the curated feed.
     func fetchNewGradJobs(
         country: String = "in",
-        page: Int
+        page: Int,
+        query: String? = nil
     ) async throws -> NewGradJobsPage {
 
-        guard let url = URL(string: "\(APIConstants.newGradJobs)?country=\(country)&page=\(page)") else {
+        var components = URLComponents(string: APIConstants.newGradJobs)
+        components?.queryItems = [
+            URLQueryItem(name: "country", value: country),
+            URLQueryItem(name: "page", value: String(page))
+        ]
+        if let query {
+            components?.queryItems?.append(URLQueryItem(name: "q", value: query))
+        }
+        // URLComponents leaves "+" as is, which servers read as a space ("C++")
+        let encodedQuery = components?.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        components?.percentEncodedQuery = encodedQuery
+
+        guard let url = components?.url else {
             throw JobAPIError.invalidResponse
         }
 
