@@ -280,7 +280,7 @@ struct AccountView: View {
 
     @ViewBuilder
     private var resumeStatus: some View {
-        switch auth.resumeSaveStatus {
+        switch resumeManager.saveStatus {
         case .idle:
             EmptyView()
         case .saving:

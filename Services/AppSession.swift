@@ -34,8 +34,19 @@ final class AppSession: ObservableObject {
         }
     }
 
+    /// Shown when the user can't save another resume (app check or database).
+    enum ResumeLimitPrompt: String, Identifiable {
+        case originals
+        case versions
+
+        var id: String { rawValue }
+    }
+
     @Published private(set) var phase: Phase = .launching
     @Published var signInRequest: SignInReason?
+    @Published var resumeLimitPrompt: ResumeLimitPrompt?
+    /// The full "Your saved resumes" list, opened from anywhere (e.g. the limit sheet)
+    @Published var showsSavedResumes = false
     /// Short confirmation shown at the top of the screen (a toast)
     @Published var notice: String?
     /// Shown on the Welcome screen, e.g. after a session expired
@@ -98,6 +109,12 @@ final class AppSession: ObservableObject {
             .sink { [weak self] state in self?.authChanged(state) }
             .store(in: &cancellables)
 
+        // For You and the dashboard follow the active resume
+        resumeManager.$activeResumeId
+            .removeDuplicates()
+            .sink { [weak self] id in self?.activeResumeChanged(id) }
+            .store(in: &cancellables)
+
         // A guest tapping bookmark asks to sign in through the shared sheet
         tracker.$signInPromptJob
             .compactMap { $0 }
@@ -139,24 +156,22 @@ final class AppSession: ObservableObject {
             signedInUserId = user.id
             welcomeMessage = nil
 
-            resumeManager.signedIn(userId: user.id) // keeps a guest's resume
             search.signedIn(userId: user.id)
             tracker.authChanged(state)
-            dashboard.authChanged(state)
+            dashboard.authChanged(state) // its cached matches seed For You
+            let hasGuestUpload = resumeManager.signedIn(userId: user.id) // keeps a guest's resume
 
             if !legacyBookmarks.isEmpty {
                 tracker.importJobs(legacyBookmarks)
                 legacyBookmarks = []
             }
 
-            if wasGuest {
-                moveGuestResumeToAccount(userId: user.id)
+            if wasGuest, hasGuestUpload {
+                moveGuestResumeToAccount()
+            } else if wasGuest {
+                notice = "Signed in. Your progress is now saved."
             } else {
                 router.tab = .home
-                // The resume kept on this device: match it again
-                if let data = resumeManager.pdfData, !matchedJobs.hasResume {
-                    matchedJobs.load(resumeData: data, country: router.country)
-                }
             }
 
             signInRequest = nil
@@ -190,25 +205,53 @@ final class AppSession: ObservableObject {
     }
 
     /// A guest signed in during this session: their resume goes to the new
-    /// account (the sign-in sheet says so up front), then matching runs again
-    /// so the matches are stored too.
-    private func moveGuestResumeToAccount(userId: UUID) {
-        guard let data = resumeManager.pdfData,
-              resumeManager.accountResumeId(for: userId) == nil else {
-            notice = "Signed in. Your progress is now saved."
+    /// account (the sign-in sheet says so up front) and becomes active. If the
+    /// account is already full, the account's own active resume is used.
+    private func moveGuestResumeToAccount() {
+        Task {
+            do {
+                try await resumeManager.saveUnsavedUpload()
+                notice = "Signed in. Your resume is saved to your account."
+            } catch ResumeSaveError.originalLimit {
+                notice = "Signed in. Your account already has the most resumes it can save."
+                resumeLimitPrompt = .originals
+            } catch {
+                notice = "Signed in. Your resume couldn't be saved to your account."
+            }
+        }
+    }
+
+    // MARK: Active Resume
+
+    /// Signed in: For You shows the active resume's matches; the dashboard's
+    /// cached matches for it show first.
+    private func activeResumeChanged(_ id: UUID?) {
+        guard signedInUserId != nil else { return }
+
+        guard let id else {
+            if resumeManager.accountStatus == .loaded { matchedJobs.reset() }
             return
         }
-        let text = resumeManager.resumeText
-        let title = resumeManager.fileName
 
+        let cached: [Job]
+        if dashboard.data.resume?.id == id {
+            cached = dashboard.data.matches.map(\.job)
+        } else if matchedJobs.accountResumeId == nil, matchedJobs.hasLoaded {
+            // A guest's matches for the resume just saved
+            cached = matchedJobs.jobs
+        } else {
+            cached = []
+        }
+        matchedJobs.loadAccount(resumeId: id, country: router.country, cached: cached)
+        dashboard.scheduleRefresh(accountResumeId: id)
+    }
+
+    /// The limit sheet's "Manage saved resumes".
+    func manageSavedResumes() {
+        resumeLimitPrompt = nil
         Task {
-            if let id = await auth.saveGuestResume(pdfData: data, text: text, title: title) {
-                resumeManager.linkToAccount(resumeId: id, userId: userId)
-                notice = "Signed in. Your resume is saved to your account."
-                if matchedJobs.hasResume { await matchedJobs.refresh() }
-            } else {
-                notice = "Signed in. Your resume couldn't be saved; it's still on this device."
-            }
+            try? await Task.sleep(nanoseconds: 450_000_000) // let the sheet close first
+            showsSavedResumes = true
         }
     }
 
@@ -220,6 +263,8 @@ final class AppSession: ObservableObject {
         resumeManager.signedOut()
         matchedJobs.reset()
         search.signedOut()
+        resumeLimitPrompt = nil
+        showsSavedResumes = false
         router.reset(for: .welcome)
         LaunchCleanup.removeUserData()
     }
@@ -277,6 +322,7 @@ enum LaunchCleanup {
             defaults.removeObject(forKey: key)
         }
         JobSearchViewModel.removeAllStoredSearches(from: defaults)
+        MatchedJobsViewModel.removeRefreshTimes(from: defaults)
         URLCache.shared.removeAllCachedResponses()
         clearTemporaryFiles()
     }

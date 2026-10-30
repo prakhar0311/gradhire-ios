@@ -16,7 +16,7 @@ struct UploadResumeView: View {
     @State private var showRetry = false
     @State private var showSlowServerHint = false
     @State private var showAIConsent = false
-    @State private var offerAccountSave = false
+    @State private var isSaving = false
 
     // Asked once, before the first resume is sent to GradHire's server and OpenAI
     @AppStorage("ai_data_consent_v1") private var hasAIConsent = false
@@ -102,15 +102,6 @@ struct UploadResumeView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .alert("Save this resume to your account?", isPresented: $offerAccountSave) {
-            Button("Save") {
-                saveToAccount()
-                showMatches()
-            }
-            Button("Not now", role: .cancel) { showMatches() }
-        } message: {
-            Text("It's stored privately in your GradHire account, so your readiness score, skill insights and tailored versions are kept. If you choose Not now, it stays on this device only.")
-        }
     }
 
     private var glassBackground: some View {
@@ -147,10 +138,9 @@ struct UploadResumeView: View {
     // MARK: - Current Resume
 
     private var currentResumeCard: some View {
-        let isLinked = resumeManager.accountResumeId(for: auth.user?.id) != nil
         let status: String = session.isGuest
             ? "For this session only"
-            : (isLinked ? "Saved to your account" : "On this device only")
+            : "Active · saved to your account"
 
         return HStack(spacing: 14) {
             ZStack {
@@ -192,15 +182,20 @@ struct UploadResumeView: View {
         router.show(.jobs)
     }
 
-    private func saveToAccount() {
-        guard let data = resumeManager.pdfData, let userId = auth.user?.id else { return }
-        let text = resumeManager.resumeText
-        let title = resumeManager.fileName
+    /// Signed in: every upload is saved to the account and becomes the
+    /// active resume; For You then matches it.
+    private func saveToAccount(pdfData data: Data, text: String, fileName: String) {
+        isSaving = true
         Task {
-            if let id = await auth.saveGuestResume(pdfData: data, text: text, title: title) {
-                resumeManager.linkToAccount(resumeId: id, userId: userId)
-                // Match again with the account copy, so the matches are stored
-                await matchedJobs.refresh()
+            defer { isSaving = false }
+            do {
+                try await resumeManager.saveNewOriginal(pdfData: data, text: text, fileName: fileName)
+                showMatches()
+            } catch ResumeSaveError.originalLimit {
+                session.resumeLimitPrompt = .originals
+            } catch {
+                errorMessage = "Your resume couldn't be saved to your account. \(JobAPIError.from(error).localizedDescription)"
+                showRetry = true
             }
         }
     }
@@ -237,7 +232,10 @@ struct UploadResumeView: View {
         Button {
             errorMessage = nil
             showRetry = false
-            if hasAIConsent {
+            // Signed in and full: say so before they pick a file
+            if session.isSignedIn, resumeManager.isAtOriginalLimit {
+                session.resumeLimitPrompt = .originals
+            } else if hasAIConsent {
                 showPicker = true
             } else {
                 showAIConsent = true
@@ -257,7 +255,7 @@ struct UploadResumeView: View {
             .foregroundColor(.white)
             .shadow(color: AppTheme.purple.opacity(0.4), radius: 16, x: 0, y: 6)
         }
-        .disabled(isUploading)
+        .disabled(isUploading || isSaving)
     }
 
     // MARK: - Browse All Jobs
@@ -280,7 +278,7 @@ struct UploadResumeView: View {
             .background(glassBackground)
             .foregroundColor(.white.opacity(0.75))
         }
-        .disabled(isUploading)
+        .disabled(isUploading || isSaving)
     }
 
     // MARK: - Data Use Note
@@ -298,12 +296,14 @@ struct UploadResumeView: View {
 
     @ViewBuilder
     private var statusSection: some View {
-        if isUploading {
+        if isUploading || isSaving {
             HStack(spacing: 10) {
                 ProgressView()
                     .tint(AppTheme.violet)
                 Text(
-                    showSlowServerHint
+                    isSaving
+                    ? "Saving to your account…"
+                    : showSlowServerHint
                     ? "Waking up the server. This can take up to a minute the first time."
                     : "Analyzing resume..."
                 )
@@ -433,13 +433,11 @@ struct UploadResumeView: View {
                         showRetry = true
 
                     case .success(let resumeText):
-                        resumeManager.replace(pdfData: data, text: resumeText, fileName: fileName)
-                        matchedJobs.load(resumeData: data, country: router.country)
-
-                        if auth.user != nil {
-                            // Signed in: saving to the account is still a choice
-                            offerAccountSave = true
+                        if session.isSignedIn {
+                            saveToAccount(pdfData: data, text: resumeText, fileName: fileName)
                         } else {
+                            resumeManager.replace(pdfData: data, text: resumeText, fileName: fileName)
+                            matchedJobs.load(resumeData: data, country: router.country)
                             showMatches()
                         }
                     }

@@ -24,7 +24,7 @@ struct GradHireApp: App {
     init() {
         let supabase = SupabaseManager()
         _supabase = StateObject(wrappedValue: supabase)
-        let auth = AuthViewModel(auth: supabase.auth, resumes: supabase.resumes)
+        let auth = AuthViewModel(auth: supabase.auth)
         _auth = StateObject(wrappedValue: auth)
         let tracker = TrackerStore(repository: supabase.applications)
         _tracker = StateObject(wrappedValue: tracker)
@@ -36,13 +36,10 @@ struct GradHireApp: App {
         let resumeManager = ResumeManager(resumes: supabase.resumes, applications: supabase.applications)
         _resumeManager = StateObject(wrappedValue: resumeManager)
 
-        // Signed-in users with a saved resume: matching also stores the matches
+        // Signed-in users: For You reads and refreshes the active resume's stored matches
         let matchedJobs = MatchedJobsViewModel()
-        matchedJobs.accountContext = { [weak resumeManager] in
-            guard let access = await supabase.currentAccess(),
-                  let resumeId = resumeManager?.accountResumeId(for: access.userId) else { return nil }
-            return (resumeId, access.accessToken)
-        }
+        matchedJobs.repository = supabase.resumes
+        matchedJobs.accessToken = { await supabase.currentAccess()?.accessToken }
         _matchedJobs = StateObject(wrappedValue: matchedJobs)
 
         let jobSearch = JobSearchViewModel()

@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */; };
+		F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */; };
+		F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */; };
 		F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */; };
 		F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */; };
 		F40D62562F28DDC4004651FB /* UploadResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62552F28DDC4004651FB /* UploadResumeView.swift */; };
@@ -75,6 +78,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
+		F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViewModel.swift; sourceTree = "<group>"; };
+		F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyLinkButton.swift; sourceTree = "<group>"; };
 		F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViews.swift; sourceTree = "<group>"; };
 		F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViewModel.swift; sourceTree = "<group>"; };
 		F40D62272F28DCA7004651FB /* GradHire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GradHire.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -269,6 +275,7 @@
 				F4A1B07B2FC0000100A1B0C1 /* DashboardViewModel.swift */,
 				F4A1B0012FC0000100A1B0C1 /* MatchedJobsViewModel.swift */,
 				F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */,
+				F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */,
 				F4A1B0032FC0000100A1B0C1 /* AllJobsViewModel.swift */,
 			);
 			path = ViewModels;
@@ -314,6 +321,7 @@
 		F4A1B07F2FC0000100A1B0C1 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */,
 				F4A1B07D2FC0000100A1B0C1 /* HomeView.swift */,
 			);
 			path = Home;
@@ -352,6 +360,7 @@
 				F4A1B0802FC0000100A1B0C1 /* AppTheme.swift */,
 				F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */,
 				F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */,
+				F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */,
 				F4A1B0072FC0000100A1B0C1 /* JobsFilterBar.swift */,
 				F47760112F3A250700FFE828 /* ShareSheet.swift */,
 			);
@@ -521,6 +530,9 @@
 				F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */,
 				F4A1B0022FC0000100A1B0C1 /* MatchedJobsViewModel.swift in Sources */,
 				F4A1B0042FC0000100A1B0C1 /* AllJobsViewModel.swift in Sources */,
+				F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */,
+				F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */,
+				F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */,
 				F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */,
 				F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */,
 				F4A1B00A2FC0000100A1B0C1 /* OptimizeResumeViewModel.swift in Sources */,

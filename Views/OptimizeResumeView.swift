@@ -12,7 +12,7 @@ struct OptimizeResumeView: View {
     @EnvironmentObject var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var tracker: TrackerStore
     @EnvironmentObject private var auth: AuthViewModel
-    @State private var showSafari = false
+    @EnvironmentObject private var session: AppSession
     @StateObject private var network = NetworkMonitor.shared
     @StateObject private var viewModel: OptimizeResumeViewModel
 
@@ -20,6 +20,10 @@ struct OptimizeResumeView: View {
     @State private var downloadErrorMessage: String?
     @State private var downloadedFileURL: URL?
     @State private var sharedFileURL: URL?
+    /// Tailoring at the version limit: waiting for "Replace oldest?"
+    @State private var pendingTailored: PendingTailored?
+    /// The PDF built when this version was saved; Download reuses it
+    @State private var tailoredPDF: Data?
 
     init(job: Job) {
         self.job = job
@@ -72,9 +76,26 @@ struct OptimizeResumeView: View {
         .onChange(of: viewModel.result?.score) { _, score in
             guard case .loaded(_, let after)? = score,
                   let text = viewModel.result?.response.optimizedResumeText else { return }
-            let job = viewModel.job
-            let userId = auth.user?.id
-            Task { await resumeManager.saveTailored(job: job, text: text, score: after, userId: userId) }
+            saveTailored(PendingTailored(
+                text: text,
+                json: viewModel.result?.response.optimizedResumeJSON,
+                score: after
+            ))
+        }
+        .confirmationDialog(
+            "Replace your oldest tailored version?",
+            isPresented: Binding(
+                get: { pendingTailored != nil },
+                set: { if !$0 { pendingTailored = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingTailored
+        ) { pending in
+            Button("Replace oldest") { saveTailored(pending, replacingOldest: true) }
+            Button("Manage saved resumes") { session.showsSavedResumes = true }
+            Button("Don't save", role: .cancel) {}
+        } message: { _ in
+            Text(replaceMessage)
         }
         .sheet(item: $downloadedFileURL, onDismiss: removeSharedFile) { url in
             ShareSheet(items: [url])
@@ -368,34 +389,24 @@ private extension OptimizeResumeView {
                     .multilineTextAlignment(.center)
             }
 
-            if let url = URL(string: job.applyURL) {
-                // In-app browser, like job detail; "Did you apply?" when it closes
-                Button {
-                    tracker.applyOpened(job, externally: false)
-                    showSafari = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("Apply Now")
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        Image(systemName: "arrow.up.right.square.fill")
-                            .font(.system(size: 14))
-                        Spacer()
-                    }
-                    .padding(.vertical, 15)
-                    .background(Color.white.opacity(0.06))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                    )
-                    .foregroundColor(.white.opacity(0.8))
-                    .cornerRadius(16)
+            // Opens the browser; "Did you apply?" when the user comes back
+            ApplyLinkButton(job: job, opensIn: .browser) {
+                HStack {
+                    Spacer()
+                    Text("Apply Now")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    Image(systemName: "arrow.up.right.square.fill")
+                        .font(.system(size: 14))
+                    Spacer()
                 }
-                .sheet(isPresented: $showSafari, onDismiss: {
-                    tracker.checkApplyPrompt(fromForeground: false)
-                }) {
-                    SafariView(url: url)
-                }
+                .padding(.vertical, 15)
+                .background(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
+                .foregroundColor(.white.opacity(0.8))
+                .cornerRadius(16)
             }
         }
     }
@@ -580,6 +591,38 @@ private extension OptimizeResumeView {
 
 private extension OptimizeResumeView {
 
+    var replaceMessage: String {
+        let limit = resumeManager.limits.maxVersions
+        guard let oldest = resumeManager.oldestVersion else {
+            return "You can keep up to \(limit) tailored versions."
+        }
+        let date = oldest.createdAt.formatted(.dateTime.day().month(.abbreviated))
+        return "You can keep up to \(limit) tailored versions. Replace \u{201C}\(oldest.displayTitle)\u{201D} (\(date)) with this one?"
+    }
+
+    /// Signed-in users with a saved resume keep each scored version. At the
+    /// limit, the user is asked before the oldest version is replaced.
+    func saveTailored(_ pending: PendingTailored, replacingOldest: Bool = false) {
+        guard session.isSignedIn, resumeManager.activeResumeId != nil else { return }
+        let job = job
+        Task {
+            do {
+                tailoredPDF = try await resumeManager.saveTailored(
+                    job: job,
+                    text: pending.text,
+                    optimizedResumeJSON: pending.json,
+                    score: pending.score,
+                    replacingOldest: replacingOldest
+                )
+                if replacingOldest { session.notice = "Saved. Your oldest tailored version was replaced." }
+            } catch ResumeSaveError.versionLimit {
+                pendingTailored = pending
+            } catch {
+                session.notice = "This tailored version couldn't be saved to your account."
+            }
+        }
+    }
+
     /// The PDF only exists for the share sheet; nothing is kept afterwards.
     func removeSharedFile() {
         if let url = sharedFileURL {
@@ -589,6 +632,19 @@ private extension OptimizeResumeView {
     }
 
     func downloadResume() {
+        downloadErrorMessage = nil
+
+        // Already built when this version was saved: no second request
+        if let tailoredPDF {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("GradHire_Resume_\(UUID().uuidString.prefix(8)).pdf")
+            if (try? tailoredPDF.write(to: url, options: .completeFileProtection)) != nil {
+                sharedFileURL = url
+                downloadedFileURL = url
+                return
+            }
+        }
+
         guard network.isConnected else { downloadErrorMessage = "No internet connection"; return }
         guard let resumeData = resumeManager.pdfData else {
             downloadErrorMessage = "Upload your resume first."; return
@@ -607,8 +663,8 @@ private extension OptimizeResumeView {
                     self.downloadErrorMessage = nil
                     self.sharedFileURL = url
                     self.downloadedFileURL = url
-                case .failure:
-                    self.downloadErrorMessage = "Could not download the updated resume. Tap download to try again."
+                case .failure(let error):
+                    self.downloadErrorMessage = error.localizedDescription
                 }
             }
         }
@@ -676,3 +732,12 @@ struct FlowLayout<Data: RandomAccessCollection, Content: View>: View where Data.
     }
 }
 
+
+
+// MARK: - Pending Tailored Version
+
+struct PendingTailored {
+    let text: String
+    let json: Data?
+    let score: Int?
+}

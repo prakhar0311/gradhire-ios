@@ -20,6 +20,7 @@ nonisolated enum APIConstants {
 
     // MARK: - Jobs
     static let jobsFromResume = "\(baseURL)/jobs/from-resume"
+    static let jobsForResume = "\(baseURL)/jobs/for-resume"
     static let newGradJobs = "\(baseURL)/jobs/new-grad"
     static let jobsMatch = "\(baseURL)/jobs/match"
 }

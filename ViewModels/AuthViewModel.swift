@@ -15,13 +15,6 @@ final class AuthViewModel: ObservableObject {
         case signedIn(AuthUser)
     }
 
-    enum ResumeSaveStatus: Equatable {
-        case idle
-        case saving
-        case saved
-        case failed(String)
-    }
-
     @Published private(set) var state: State
     @Published private(set) var isWorking = false
     @Published var errorMessage: String?
@@ -34,10 +27,8 @@ final class AuthViewModel: ObservableObject {
 
     /// Why the last sign-out happened (nil: the server ended the session).
     @Published private(set) var lastSignOutReason: SignOutReason?
-    @Published private(set) var resumeSaveStatus: ResumeSaveStatus = .idle
 
     private let auth: any AuthRepository
-    private let resumes: any ResumeRepository
     private var listenTask: Task<Void, Never>?
     private var appleNonce: String?
 
@@ -48,9 +39,8 @@ final class AuthViewModel: ObservableObject {
         return nil
     }
 
-    init(auth: any AuthRepository, resumes: any ResumeRepository) {
+    init(auth: any AuthRepository) {
         self.auth = auth
-        self.resumes = resumes
         self.state = auth.currentUser().map { .signedIn($0) } ?? (auth.isConfigured ? .loading : .signedOut)
     }
 
@@ -109,7 +99,6 @@ final class AuthViewModel: ObservableObject {
         await auth.signOutLocally()
         GoogleSignInHelper.signOut()
         state = .signedOut
-        resumeSaveStatus = .idle
     }
 
     // MARK: Sign in with Apple
@@ -182,7 +171,6 @@ final class AuthViewModel: ObservableObject {
     private func didSignIn(_ user: AuthUser) {
         lastSignOutReason = nil
         state = .signedIn(user)
-        resumeSaveStatus = .idle
     }
 
     // MARK: Sign Out / Delete
@@ -193,7 +181,6 @@ final class AuthViewModel: ObservableObject {
         await auth.signOut()
         GoogleSignInHelper.signOut()
         state = .signedOut
-        resumeSaveStatus = .idle
         isWorking = false
     }
 
@@ -223,40 +210,10 @@ final class AuthViewModel: ObservableObject {
             lastSignOutReason = .deleted
             GoogleSignInHelper.signOut()
             state = .signedOut
-            resumeSaveStatus = .idle
             return true
         } catch {
             errorMessage = message(for: error)
             return false
-        }
-    }
-
-    // MARK: Guest Resume (opt-in)
-
-    /// Uploads the resume already loaded on this device to resumes/{user id}/
-    /// and records it as their original resume. Only runs when the user
-    /// chooses Save. Returns the new resume's id.
-    @discardableResult
-    func saveGuestResume(pdfData data: Data, text: String?, title: String? = nil) async -> UUID? {
-        resumeSaveStatus = .saving
-
-        do {
-            let fileName = "resume-\(Int(Date().timeIntervalSince1970)).pdf"
-            let path = try await resumes.uploadResumeFile(data, fileName: fileName)
-
-            var resume = NewResume(kind: .original)
-            resume.title = title ?? "My resume"
-            resume.filePath = path
-            if let text, !text.isEmpty {
-                resume.parsedData = .object(["text": .string(text)])
-            }
-            let record = try await resumes.createResume(resume)
-
-            resumeSaveStatus = .saved
-            return record.id
-        } catch {
-            resumeSaveStatus = .failed(message(for: error))
-            return nil
         }
     }
 

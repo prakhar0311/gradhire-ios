@@ -12,7 +12,6 @@ struct TrackerDetailView: View {
     @State private var notes = ""
     @State private var didLoadNotes = false
     @State private var events: [ApplicationEventRecord]?
-    @State private var showSafari = false
     @State private var confirmRemove: Job?
     @FocusState private var notesFocused: Bool
 
@@ -200,18 +199,8 @@ struct TrackerDetailView: View {
     @ViewBuilder
     private func actions(_ item: TrackedApplication) -> some View {
         VStack(spacing: 10) {
-            if let url = URL(string: item.snapshot.applyURL), !item.snapshot.applyURL.isEmpty {
-                Button {
-                    tracker.applyOpened(item.job, externally: false)
-                    showSafari = true
-                } label: {
-                    actionLabel("Apply / View Posting", icon: "arrow.up.right.square.fill", prominent: true)
-                }
-                .sheet(isPresented: $showSafari, onDismiss: {
-                    tracker.checkApplyPrompt(fromForeground: false)
-                }) {
-                    SafariView(url: url)
-                }
+            ApplyLinkButton(job: item.job) {
+                actionLabel("Apply / View Posting", icon: "arrow.up.right.square.fill", prominent: true)
             }
 
             NavigationLink(destination: JobDetailView(job: item.job)) {

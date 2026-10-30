@@ -10,6 +10,7 @@ struct AppRootView: View {
     @EnvironmentObject private var auth: AuthViewModel
     @EnvironmentObject private var resumeManager: ResumeManager
     @EnvironmentObject private var tracker: TrackerStore
+    @EnvironmentObject private var router: AppRouter
 
     var body: some View {
         ZStack {
@@ -33,6 +34,21 @@ struct AppRootView: View {
                 .environmentObject(session)
                 .environmentObject(resumeManager)
                 .environmentObject(tracker)
+        }
+        // Saving one more resume than the account allows
+        .sheet(item: $session.resumeLimitPrompt) { prompt in
+            ResumeLimitSheet(prompt: prompt)
+                .environmentObject(session)
+                .environmentObject(resumeManager)
+                .presentationDetents([.height(380)])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $session.showsSavedResumes) {
+            NavigationStack {
+                SavedResumesListView(isSheet: true)
+            }
+            .environmentObject(resumeManager)
+            .environmentObject(router)
         }
         .overlay(alignment: .top) { NoticeToast() }
     }

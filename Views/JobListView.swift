@@ -22,6 +22,7 @@ struct JobListView: View {
     @EnvironmentObject private var matchedJobs: MatchedJobsViewModel
     @EnvironmentObject private var allJobs: AllJobsViewModel
     @EnvironmentObject private var search: JobSearchViewModel
+    @EnvironmentObject private var resumeManager: ResumeManager
 
     @State private var confirmRemove: Job?
     @FocusState private var searchFocused: Bool
@@ -116,7 +117,19 @@ struct JobListView: View {
 
     @ViewBuilder
     private var forYouContent: some View {
-        if !matchedJobs.hasResume {
+        switch resumeManager.availability {
+        case .loading:
+            // Signed in, still finding the active resume: never "Upload" here
+            skeletonList
+
+        case .failed:
+            DarkErrorView(message: "We couldn't load your saved resume. Check your connection and try again.", retryAction: {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                resumeManager.refreshAccount()
+            })
+            .padding(.horizontal, 16)
+
+        case .none:
             DarkEmptyView(
                 icon: "doc.text.magnifyingglass",
                 title: "Get matched to jobs",
@@ -126,7 +139,7 @@ struct JobListView: View {
             )
             .padding(.horizontal, 16)
 
-        } else {
+        case .available:
             switch matchedJobs.state {
             case .idle, .loading:
                 skeletonList

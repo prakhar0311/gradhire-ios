@@ -66,9 +66,8 @@ final class DashboardViewModel: ObservableObject {
 
     // MARK: Refresh
 
-    /// Refreshes every section in parallel. `accountResumeId` is the resume on
-    /// this device that's saved to the account (if any); without it the
-    /// newest saved resume is used.
+    /// Refreshes every section in parallel. `accountResumeId` is the user's
+    /// active resume; without it the newest saved original is used.
     func refresh(accountResumeId: UUID?) async {
         guard let owner = userId else { return }
 
@@ -96,8 +95,8 @@ final class DashboardViewModel: ObservableObject {
             let resumes = try await repository.fetchResumeSummaries()
             guard userId == owner else { return nil }
 
-            let originals = resumes.filter { $0.kind == .original }
-            let current = originals.first { $0.id == preferred } ?? originals.first
+            // The active resume (any kind), else the newest original
+            let current = resumes.first { $0.id == preferred } ?? resumes.first { $0.kind == .original }
 
             if let current {
                 data.resume = ResumeCardData(
@@ -106,7 +105,8 @@ final class DashboardViewModel: ObservableObject {
                     readinessScore: current.readinessScore,
                     createdAt: current.createdAt
                 )
-                data.tailoredCount = resumes.filter { $0.kind == .tailored && $0.parentResumeId == current.id }.count
+                let originalId = current.kind == .original ? current.id : current.parentResumeId
+                data.tailoredCount = resumes.filter { $0.kind == .tailored && $0.parentResumeId == originalId }.count
             } else {
                 data.resume = nil
                 data.tailoredCount = 0

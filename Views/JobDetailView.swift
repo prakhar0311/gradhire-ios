@@ -9,7 +9,6 @@ struct JobDetailView: View {
     @EnvironmentObject private var router: AppRouter
 
     @State private var showFullDescription = false
-    @State private var showSafari = false
     @State private var navigateToOptimize = false
     @State private var showUploadAlert = false
 
@@ -326,34 +325,24 @@ private extension JobDetailView {
     var actionButtons: some View {
         VStack(spacing: 10) {
 
-            // Apply button
-            if let url = URL(string: job.applyURL), !job.applyURL.isEmpty {
-                Button {
-                    tracker.applyOpened(job, externally: false)
-                    showSafari = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Image(systemName: "arrow.up.right.square.fill")
-                            .font(.system(size: 15))
-                        Text("Apply / View Posting")
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                        Spacer()
-                    }
-                    .padding(.vertical, 15)
-                    .background(Color.white.opacity(0.06))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
-                    )
-                    .foregroundColor(.white.opacity(0.8))
-                    .cornerRadius(16)
+            // Apply button (opens the browser)
+            ApplyLinkButton(job: job) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "arrow.up.right.square.fill")
+                        .font(.system(size: 15))
+                    Text("Apply / View Posting")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                    Spacer()
                 }
-                .sheet(isPresented: $showSafari, onDismiss: {
-                    tracker.checkApplyPrompt(fromForeground: false)
-                }) {
-                    SafariView(url: url)
-                }
+                .padding(.vertical, 15)
+                .background(Color.white.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                )
+                .foregroundColor(.white.opacity(0.8))
+                .cornerRadius(16)
             }
 
             // Optimize button

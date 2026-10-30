@@ -66,6 +66,32 @@ final class JobAPIService {
         return URLSession(configuration: config)
     }()
 
+    // MARK: - Matches For a Saved Resume
+
+    /// Matches for a resume saved to the user's account, using its stored
+    /// text (no upload). Jobs scored before keep their stored score.
+    func fetchJobsForResume(
+        resumeId: UUID,
+        accessToken: String,
+        country: String = "in"
+    ) async throws -> [Job] {
+
+        guard let url = URL(string: APIConstants.jobsForResume) else {
+            throw JobAPIError.invalidResponse
+        }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "resume_id": resumeId.uuidString.lowercased(),
+            "country": country
+        ])
+
+        return try await send(request, as: [Job].self)
+    }
+
     // MARK: - Fetch Jobs From Resume (Multipart)
 
     /// `account` (resume id and session token) is sent for signed-in users

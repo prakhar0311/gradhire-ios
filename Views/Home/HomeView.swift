@@ -78,7 +78,7 @@ struct HomeView: View {
     /// A brand-new account: no resume anywhere and nothing tracked yet. One
     /// clear next step instead of a page of empty sections.
     private var isNewUser: Bool {
-        !resumeManager.hasResume
+        resumeManager.availability == .none
             && dashboard.data.resume == nil
             && tracker.items.isEmpty
             && dashboard.resumeStatus != .loading
@@ -91,6 +91,9 @@ struct HomeView: View {
             readinessLoading: readinessLoading,
             isSignedIn: isSignedIn
         )
+        if isSignedIn {
+            SavedResumesSection()
+        }
         PipelineSection()
         ThisWeekSection(showGoalEditor: $showGoalEditor)
         FollowUpsSection()
@@ -100,6 +103,7 @@ struct HomeView: View {
     }
 
     private func refreshAll() async {
+        async let resumes: Void = resumeManager.reloadAccount()
         async let trackerSync: Void = tracker.sync()
         async let serverData: Void = dashboard.refresh(
             accountResumeId: resumeManager.accountResumeId(for: auth.user?.id)
@@ -107,7 +111,7 @@ struct HomeView: View {
         if matchedJobs.hasResume {
             await matchedJobs.refresh()
         }
-        _ = await (trackerSync, serverData)
+        _ = await (resumes, trackerSync, serverData)
     }
 
     // MARK: Matches (this device first, then the account)
@@ -310,18 +314,12 @@ private struct ResumeCardSection: View {
                     Spacer(minLength: 0)
                 }
 
-                HStack(spacing: 10) {
-                    DashboardButton(title: "Improve", icon: "wand.and.stars", prominent: true) {
-                        router.jobsTab = .forYou
-                        router.show(.jobs)
-                    }
-                    DashboardButton(title: "Upload new", icon: "arrow.up.doc", prominent: false) {
-                        router.show(.resume)
-                    }
+                DashboardButton(title: "Upload new", icon: "arrow.up.doc", prominent: false) {
+                    router.show(.resume)
                 }
                 .padding(.top, 4)
 
-                Text("Readiness is the average match score of your top 10 matches. Improve a resume for a job to raise it.")
+                Text("Readiness is the average match score of your top 10 matches. Tailor your resume for a job to raise it.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.28))
                     .fixedSize(horizontal: false, vertical: true)
@@ -839,7 +837,7 @@ private struct RecentActivitySection: View {
 
 // MARK: - Building Blocks
 
-private struct DashboardCard<Content: View>: View {
+struct DashboardCard<Content: View>: View {
 
     var title: String? = nil
     var actionTitle: String? = nil
@@ -879,7 +877,7 @@ private struct DashboardCard<Content: View>: View {
     }
 }
 
-private struct DashboardButton: View {
+struct DashboardButton: View {
 
     let title: String
     var icon: String? = nil
@@ -917,7 +915,7 @@ private struct DashboardButton: View {
     }
 }
 
-private struct SkeletonLines: View {
+struct SkeletonLines: View {
 
     let count: Int
     @State private var shimmer = false
@@ -939,7 +937,7 @@ private struct SkeletonLines: View {
     }
 }
 
-private struct EmptyLine: View {
+struct EmptyLine: View {
 
     let icon: String
     let text: String
@@ -957,7 +955,7 @@ private struct EmptyLine: View {
     }
 }
 
-private struct RetryLine: View {
+struct RetryLine: View {
 
     let text: String
     let retry: () -> Void

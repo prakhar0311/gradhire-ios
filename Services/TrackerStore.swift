@@ -177,7 +177,7 @@ final class TrackerStore: ObservableObject {
 
     // MARK: "Did you apply?"
 
-    /// Called when an apply link is opened, in the in-app browser or in
+    /// Called when an apply link is opened, in the in-app browser sheet or in
     /// Safari (`externally`). Asked once per job and account, and only if the
     /// job isn't already marked as applied.
     func applyOpened(_ job: Job, externally: Bool) {
@@ -188,12 +188,17 @@ final class TrackerStore: ObservableObject {
         openedApplyExternally = externally
     }
 
+    /// The browser couldn't open the link, so there's nothing to ask about.
+    func applyOpenFailed() {
+        openedApplyJob = nil
+    }
+
     /// Called when the user is back: the in-app browser closed, or the app
-    /// returned to the foreground (`fromForeground`) after an external link.
+    /// returned to the foreground (`fromForeground`) after Safari.
     func checkApplyPrompt(fromForeground: Bool) {
         guard let job = openedApplyJob, let userId else { return }
-        // Coming back to the app while the in-app browser is still open isn't
-        // "back from applying"; wait for the browser to close.
+        // Back in the app while the in-app browser is still open isn't "back
+        // from applying"; wait for the sheet to close.
         if fromForeground && !openedApplyExternally { return }
         openedApplyJob = nil
         var asked = askedApplyJobs(userId)

@@ -303,6 +303,26 @@ final class APIService {
     
     // MARK: - Download Optimized Resume
     
+    /// The optimized resume as PDF data (for saving a tailored version). The
+    /// temporary file is removed straight away.
+    func optimizedResumePDF(
+        resumeData: Data,
+        jobDescription: String,
+        optimizedResumeJSON: Data?
+    ) async throws -> Data {
+        let url: URL = try await withCheckedThrowingContinuation { continuation in
+            downloadOptimizedResume(
+                resumeData: resumeData,
+                jobDescription: jobDescription,
+                optimizedResumeJSON: optimizedResumeJSON
+            ) { result in
+                continuation.resume(with: result)
+            }
+        }
+        defer { try? FileManager.default.removeItem(at: url) }
+        return try Data(contentsOf: url)
+    }
+
     func downloadOptimizedResume(
         resumeData: Data,
         jobDescription: String,
@@ -318,7 +338,7 @@ final class APIService {
                 domain: "Download",
                 code: -1,
                 userInfo: [NSLocalizedDescriptionKey:
-                            "Could not download the updated resume. Try again."]
+                            "This job has no description, so the resume can't be tailored to it."]
             )))
             return
         }
@@ -379,50 +399,54 @@ final class APIService {
 
         session.downloadTask(with: request) { tempURL, response, error in
 
-            DispatchQueue.main.async {
+            // iOS deletes tempURL as soon as this handler returns, so the file
+            // is copied (or the error body read) here, before hopping to main
+            let result: Result<URL, Error>
 
-                if error != nil {
+            if let error {
+                // Offline, timed out, server unreachable: say which
+                result = .failure(JobAPIError.from(error))
 
-                    completion(.failure(NSError(
-                        domain: "Download",
-                        code: -2,
-                        userInfo: [NSLocalizedDescriptionKey:
-                                    "Could not download the updated resume. Try again."]
-                    )))
-                    return
-                }
-
-                guard let http = response as? HTTPURLResponse,
+            } else if let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode),
-                      let tempURL = tempURL else {
+                      let tempURL {
 
-                    completion(.failure(NSError(
-                        domain: "Download",
-                        code: -3,
-                        userInfo: [NSLocalizedDescriptionKey:
-                                    "Could not download the updated resume. Try again."]
-                    )))
-                    return
-                }
-
+                // A temporary copy just for the share sheet; the caller
+                // deletes it when sharing ends, and launch cleans up tmp
+                let shareURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("GradHire_Resume_\(UUID().uuidString.prefix(8)).pdf")
                 do {
-                    // A temporary copy just for the share sheet; the caller
-                    // deletes it when sharing ends, and launch cleans up tmp
-                    let shareURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("GradHire_Resume_\(UUID().uuidString.prefix(8)).pdf")
                     try FileManager.default.copyItem(at: tempURL, to: shareURL)
-
-                    completion(.success(shareURL))
-
+                    result = .success(shareURL)
                 } catch {
-
-                    completion(.failure(NSError(
+                    result = .failure(NSError(
                         domain: "Download",
                         code: -4,
                         userInfo: [NSLocalizedDescriptionKey:
-                                    "Could not download the updated resume. Try again."]
-                    )))
+                                    "Could not save the updated resume on this device. Try again."]
+                    ))
                 }
+
+            } else {
+                // The server's own reason ("Could not read the PDF file", a
+                // rate limit, ...) instead of a generic message
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                var message = "Could not download the updated resume (error \(status)). Try again."
+                if let tempURL,
+                   let data = try? Data(contentsOf: tempURL),
+                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let detail = json["detail"] as? String {
+                    message = detail
+                }
+                result = .failure(NSError(
+                    domain: "Download",
+                    code: -3,
+                    userInfo: [NSLocalizedDescriptionKey: message]
+                ))
+            }
+
+            DispatchQueue.main.async {
+                completion(result)
             }
 
         }.resume()
