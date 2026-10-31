@@ -200,7 +200,7 @@ final class APIService {
     
     func uploadResume(
         pdfData: Data,
-        completion: @escaping (Result<String, Error>) -> Void
+        completion: @escaping @MainActor @Sendable (Result<String, Error>) -> Void
     ) {
         
         guard let url = URL(string: APIConstants.uploadResume) else {
@@ -238,7 +238,7 @@ final class APIService {
         
         session.dataTask(with: request) { data, response, error in
             
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 
                 if let error = error {
                     completion(.failure(error))

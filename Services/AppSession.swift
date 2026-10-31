@@ -285,7 +285,7 @@ final class AppSession: ObservableObject {
 
     // MARK: Helpers
 
-    private func withTimeout(seconds: Double, _ work: @escaping () async -> Bool) async -> Bool? {
+    private func withTimeout(seconds: Double, _ work: @escaping @MainActor @Sendable () async -> Bool) async -> Bool? {
         await withTaskGroup(of: Bool?.self) { group in
             group.addTask { await work() }
             group.addTask {
