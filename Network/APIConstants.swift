@@ -10,9 +10,9 @@ nonisolated enum APIConstants {
 
     // MARK: - Resume
     static let uploadResume = "\(baseURL)/resume/upload"
-    static let optimizeResume = "\(baseURL)/resume/optimize"
-    static let downloadResume = "\(baseURL)/resume/download"
-    static let scoreResume = "\(baseURL)/resume/score"
+    static let resumeAnalysis = "\(baseURL)/resume/analysis"
+    static let resumeOptimizeV2 = "\(baseURL)/resume/optimize-v2"
+    static let resumeRender = "\(baseURL)/resume/render"
 
     // MARK: - Account
     static let deleteAccount = "\(baseURL)/account"

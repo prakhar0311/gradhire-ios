@@ -318,18 +318,17 @@ final class ResumeManager: ObservableObject {
     }
 
     /// Saves an optimized resume as a tailored version of the active resume's
-    /// original, with its PDF. `replacingOldest` first deletes the oldest
-    /// version (the user confirmed). Throws `ResumeSaveError.versionLimit`
-    /// at the limit. Returns the PDF it built, so Download can reuse it.
-    @discardableResult
+    /// original, with `pdf`: the same one-page PDF the user previews and
+    /// downloads. `replacingOldest` first deletes the oldest version (the
+    /// user confirmed). Throws `ResumeSaveError.versionLimit` at the limit.
     func saveTailored(
         job: Job,
         text: String,
-        optimizedResumeJSON: Data?,
+        pdf: Data?,
         score: Int?,
         replacingOldest: Bool = false
-    ) async throws -> Data? {
-        guard let resumes, let owner = ownerId, let active = activeResume, !text.isEmpty else { return nil }
+    ) async throws {
+        guard let resumes, let owner = ownerId, let active = activeResume, !text.isEmpty else { return }
         let parentId = active.kind == .original ? active.id : (active.parentResumeId ?? active.id)
 
         // The user confirmed: make room even if this device's count is out
@@ -340,14 +339,7 @@ final class ResumeManager: ObservableObject {
             throw ResumeSaveError.versionLimit
         }
 
-        // The PDF is built from the original resume and the optimized content
         var path: String?
-        var pdf: Data?
-        if let sourcePDF = pdfData {
-            pdf = try? await APIService.shared.optimizedResumePDF(
-                resumeData: sourcePDF, jobDescription: job.description, optimizedResumeJSON: optimizedResumeJSON
-            )
-        }
         if let pdf {
             path = try? await resumes.uploadResumeFile(pdf, fileName: "tailored-\(Self.timestamp()).pdf")
         }
@@ -374,10 +366,9 @@ final class ResumeManager: ObservableObject {
                 try await applications.ensureJob(id: job.id, snapshot: job.snapshot)
                 record = try await resumes.createResume(resume)
             }
-            guard ownerId == owner else { return pdf }
+            guard ownerId == owner else { return }
             savedResumes.insert(SavedResume(record: record), at: 0)
             persist()
-            return pdf
         } catch {
             if let path { try? await resumes.deleteResumeFile(atPath: path) }
             guard let limitError = ResumeSaveError.from(error) else { throw error }

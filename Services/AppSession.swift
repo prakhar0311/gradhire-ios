@@ -115,6 +115,18 @@ final class AppSession: ObservableObject {
             .sink { [weak self] id in self?.activeResumeChanged(id) }
             .store(in: &cancellables)
 
+        // Saving, renaming or deleting a resume refreshes the dashboard's
+        // server data (matches, activity) right away
+        resumeManager.$savedResumes
+            .map { $0.map { "\($0.id)|\($0.title ?? "")" } }
+            .removeDuplicates()
+            .dropFirst()
+            .sink { [weak self] _ in
+                guard let self, self.signedInUserId != nil else { return }
+                self.dashboard.scheduleRefresh(accountResumeId: self.resumeManager.activeResumeId)
+            }
+            .store(in: &cancellables)
+
         // A guest tapping bookmark asks to sign in through the shared sheet
         tracker.$signInPromptJob
             .compactMap { $0 }
@@ -230,6 +242,7 @@ final class AppSession: ObservableObject {
 
         guard let id else {
             if resumeManager.accountStatus == .loaded { matchedJobs.reset() }
+            dashboard.scheduleRefresh(accountResumeId: nil)
             return
         }
 
@@ -265,6 +278,7 @@ final class AppSession: ObservableObject {
         search.signedOut()
         resumeLimitPrompt = nil
         showsSavedResumes = false
+        OptimizeResumeViewModel.clearCache()
         router.reset(for: .welcome)
         LaunchCleanup.removeUserData()
     }

@@ -262,7 +262,8 @@ struct SavedResumeRow: View {
             ProgressView()
                 .tint(AppTheme.violet)
                 .frame(width: 32, height: 32)
-        } else if let score = resume.readinessScore {
+        } else if !resume.isVersion, let score = resume.readinessScore {
+            // Originals only: a tailored version's score is for one job
             DarkMatchRing(score: score, size: 32, lineWidth: 3)
                 .accessibilityLabel("Readiness \(score)")
         }

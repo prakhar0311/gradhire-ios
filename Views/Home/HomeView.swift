@@ -79,9 +79,7 @@ struct HomeView: View {
     /// clear next step instead of a page of empty sections.
     private var isNewUser: Bool {
         resumeManager.availability == .none
-            && dashboard.data.resume == nil
             && tracker.items.isEmpty
-            && dashboard.resumeStatus != .loading
     }
 
     @ViewBuilder
@@ -137,7 +135,7 @@ struct HomeView: View {
         default:
             if matchedJobs.hasResume { return .loading }
             if isSignedIn && dashboard.matchesStatus == .loading && !dashboard.hasData { return .loading }
-            if isSignedIn && dashboard.matchesStatus == .failed && dashboard.data.resume != nil {
+            if isSignedIn && dashboard.matchesStatus == .failed && resumeManager.activeResume != nil {
                 return .failed {
                     dashboard.scheduleRefresh(accountResumeId: resumeManager.accountResumeId(for: auth.user?.id))
                 }
@@ -156,14 +154,17 @@ struct HomeView: View {
         )
     }
 
-    /// The average of the top 10 match scores (same as the backend).
+    /// The average of the top 10 quick-match scores (same as the backend).
     private var readiness: Int? {
         if matchedJobs.hasLoaded {
             let top = matchedJobs.jobs.compactMap(\.matchScore).sorted(by: >).prefix(10)
             guard !top.isEmpty else { return nil }
             return Int((Double(top.reduce(0, +)) / Double(top.count)).rounded())
         }
-        return isSignedIn ? dashboard.data.resume?.readinessScore : nil
+        // The stored value, for the active saved resume only (an original's
+        // is the quick-match average; a tailored version's is a job score)
+        guard isSignedIn, let active = resumeManager.activeResume, active.kind == .original else { return nil }
+        return active.readinessScore
     }
 
     private var readinessLoading: Bool {
@@ -267,19 +268,16 @@ private struct ResumeCardSection: View {
     let readinessLoading: Bool
     let isSignedIn: Bool
 
+    // Everything here comes from ResumeManager, the same source as "Your
+    // saved resumes", For You and the limits, so it changes the moment a
+    // resume is saved, renamed, deleted or made active
     @EnvironmentObject private var resumeManager: ResumeManager
-    @EnvironmentObject private var dashboard: DashboardViewModel
     @EnvironmentObject private var router: AppRouter
-    @EnvironmentObject private var auth: AuthViewModel
-
-    private var serverResume: ResumeCardData? { isSignedIn ? dashboard.data.resume : nil }
 
     private var title: String? {
-        if resumeManager.hasResume { return resumeManager.fileName ?? "Your resume" }
-        return serverResume?.title
+        if let active = resumeManager.activeResume { return active.displayTitle }
+        return resumeManager.pdfData != nil ? (resumeManager.fileName ?? "Your resume") : nil
     }
-
-    private var isLinked: Bool { resumeManager.accountResumeId(for: auth.user?.id) != nil }
 
     var body: some View {
         DashboardCard(title: "YOUR RESUME") {
@@ -288,12 +286,12 @@ private struct ResumeCardSection: View {
                     VStack(spacing: 4) {
                         DarkMatchRing(score: readiness ?? 0, size: 64, lineWidth: 6, isLoading: readinessLoading)
                             .opacity(readiness == nil && !readinessLoading ? 0.35 : 1)
-                        Text("Readiness")
+                        Text("Quick match")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.white.opacity(0.4))
                     }
                     .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(readiness.map { "Readiness \($0) out of 100" } ?? "Readiness not available yet")
+                    .accessibilityLabel(readiness.map { "Quick match \($0) out of 100" } ?? "Quick match not available yet")
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(title)
@@ -319,16 +317,16 @@ private struct ResumeCardSection: View {
                 }
                 .padding(.top, 4)
 
-                Text("Readiness is the average match score of your top 10 matches. Tailor your resume for a job to raise it.")
+                Text("Quick match is the average match of your top 10 jobs. Tailor your resume for a job to see its detailed score.")
                     .font(.system(size: 10))
                     .foregroundColor(.white.opacity(0.28))
                     .fixedSize(horizontal: false, vertical: true)
 
-            } else if isSignedIn && dashboard.resumeStatus == .loading && !dashboard.hasData {
+            } else if isSignedIn && resumeManager.availability == .loading {
                 SkeletonLines(count: 3)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Upload your resume to get matched to jobs and see your readiness score.")
+                    Text("Upload your resume to get matched to jobs and see how well you match.")
                         .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.55))
                         .fixedSize(horizontal: false, vertical: true)
@@ -341,18 +339,20 @@ private struct ResumeCardSection: View {
     }
 
     private var subtitle: String {
-        if resumeManager.hasResume {
-            let date = resumeManager.uploadedAt.map { " · added \($0.formatted(.dateTime.day().month(.abbreviated)))" } ?? ""
-            return (isLinked ? "Saved to your account" : "On this device only") + date
+        guard let active = resumeManager.activeResume else {
+            return isSignedIn ? "Not saved to your account yet" : "For this session only"
         }
-        return "Saved to your account"
+        let date = active.createdAt.formatted(.dateTime.day().month(.abbreviated))
+        return "Active · \(active.typeLabel) · added \(date)"
     }
 
+    /// Versions of the active resume's original.
     private var tailoredText: String {
-        if resumeManager.hasResume && !isLinked {
+        guard let active = resumeManager.activeResume else {
             return "Save it to your account to keep tailored versions"
         }
-        let count = dashboard.data.tailoredCount
+        let originalId = active.kind == .original ? active.id : active.parentResumeId
+        let count = resumeManager.savedResumes.filter { $0.isVersion && $0.parentResumeId == originalId }.count
         return count == 0 ? "No tailored versions yet" : "\(count) tailored version\(count == 1 ? "" : "s")"
     }
 }

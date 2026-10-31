@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */; };
 		F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */; };
 		F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */; };
 		F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */; };
@@ -18,7 +19,7 @@
 		F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625B2F28E15E004651FB /* JobDetailView.swift */; };
 		F40D625E2F28E23A004651FB /* OptimizeResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */; };
 		F40D62602F28E600004651FB /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D625F2F28E600004651FB /* APIService.swift */; };
-		F40D62642F2A5510004651FB /* ResumeOptimizationResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */; };
+		F40D62642F2A5510004651FB /* ResumeAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62632F2A5510004651FB /* ResumeAnalysis.swift */; };
 		F47760122F3A250700FFE828 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F47760112F3A250700FFE828 /* ShareSheet.swift */; };
 		F47760142F3A5D7800FFE828 /* ResumeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F47760132F3A5D7800FFE828 /* ResumeManager.swift */; };
 		F4A1B0022FC0000100A1B0C1 /* MatchedJobsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0012FC0000100A1B0C1 /* MatchedJobsViewModel.swift */; };
@@ -78,6 +79,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeComponents.swift; sourceTree = "<group>"; };
 		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
 		F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViewModel.swift; sourceTree = "<group>"; };
 		F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyLinkButton.swift; sourceTree = "<group>"; };
@@ -92,7 +94,7 @@
 		F40D625B2F28E15E004651FB /* JobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobDetailView.swift; sourceTree = "<group>"; };
 		F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeView.swift; sourceTree = "<group>"; };
 		F40D625F2F28E600004651FB /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
-		F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeOptimizationResponse.swift; sourceTree = "<group>"; };
+		F40D62632F2A5510004651FB /* ResumeAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeAnalysis.swift; sourceTree = "<group>"; };
 		F47760112F3A250700FFE828 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		F47760132F3A5D7800FFE828 /* ResumeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeManager.swift; sourceTree = "<group>"; };
 		F4A1B0012FC0000100A1B0C1 /* MatchedJobsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchedJobsViewModel.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 				F4A1B06D2FC0000100A1B0C1 /* RootTabView.swift */,
 				F40D625B2F28E15E004651FB /* JobDetailView.swift */,
 				F40D625D2F28E23A004651FB /* OptimizeResumeView.swift */,
+				F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */,
 				F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */,
 			);
 			path = Views;
@@ -248,7 +251,7 @@
 				F40D62572F28E03E004651FB /* Job.swift */,
 				F4A1B0692FC0000100A1B0C1 /* TrackedJob.swift */,
 				F4A1B0792FC0000100A1B0C1 /* DashboardCache.swift */,
-				F40D62632F2A5510004651FB /* ResumeOptimizationResponse.swift */,
+				F40D62632F2A5510004651FB /* ResumeAnalysis.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -530,6 +533,7 @@
 				F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */,
 				F4A1B0022FC0000100A1B0C1 /* MatchedJobsViewModel.swift in Sources */,
 				F4A1B0042FC0000100A1B0C1 /* AllJobsViewModel.swift in Sources */,
+				F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */,
 				F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */,
 				F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */,
 				F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */,
@@ -570,7 +574,7 @@
 				F40D62582F28E03E004651FB /* Job.swift in Sources */,
 				F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */,
 				F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */,
-				F40D62642F2A5510004651FB /* ResumeOptimizationResponse.swift in Sources */,
+				F40D62642F2A5510004651FB /* ResumeAnalysis.swift in Sources */,
 				F40D625A2F28E065004651FB /* JobListView.swift in Sources */,
 				F40D625C2F28E15E004651FB /* JobDetailView.swift in Sources */,
 				F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */,

@@ -29,22 +29,6 @@ struct JobDetailView: View {
         showFullDescription ? cleanedDescription : shortDescription
     }
 
-    var skills: [String] {
-        let techKeywords = [
-            "AWS","Azure","Backend","Cloud","CSS","Django",
-            "Docker","Frontend","Git","GraphQL","HTML",
-            "Java","JavaScript","Kotlin","Kubernetes",
-            "MongoDB","Node.js","Python","React",
-            "REST","SQL","Swift","TypeScript","React.js","Next.js"
-        ]
-        let lowerDesc = job.description.lowercased()
-        return techKeywords
-            .filter { lowerDesc.contains($0.lowercased()) }
-            .sorted()
-            .prefix(8)
-            .map { $0 }
-    }
-
     private var scoreColor: Color {
         switch job.matchScore {
         case (85...100)?: return AppTheme.teal
@@ -70,11 +54,6 @@ struct JobDetailView: View {
                 VStack(spacing: 12) {
 
                     headerCard
-                    if hasMatchSkills {
-                        matchSkillsCard
-                    } else if !skills.isEmpty {
-                        skillsCard
-                    }
                     descriptionCard
                     actionButtons
 
@@ -188,7 +167,7 @@ private extension JobDetailView {
                             .font(.system(size: 12))
                             .foregroundColor(scoreColor)
 
-                        Text("AI Match \(matchScore)% — \(scoreLabel)")
+                        Text("Quick match \(matchScore)% — \(scoreLabel)")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(scoreColor)
                     }
@@ -204,87 +183,6 @@ private extension JobDetailView {
                 }
             }
         }
-    }
-
-    var skillsCard: some View {
-        glassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                sectionLabel(title: "Key Skills", icon: "star.fill", iconColor: AppTheme.lavender)
-
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 80), spacing: 8)],
-                    spacing: 8
-                ) {
-                    ForEach(skills, id: \.self) { skill in
-                        Text(skill)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(AppTheme.lavender)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(AppTheme.purple.opacity(0.12))
-                            .overlay(
-                                Capsule()
-                                    .stroke(
-                                        AppTheme.purple.opacity(0.28),
-                                        lineWidth: 0.5
-                                    )
-                            )
-                            .clipShape(Capsule())
-                    }
-                }
-            }
-        }
-    }
-
-    /// Resume-matched jobs carry the skills the job asks for that the resume
-    /// has / lacks (from matching); other jobs fall back to keyword chips.
-    private var hasMatchSkills: Bool {
-        !(job.matchedSkills ?? []).isEmpty || !(job.missingSkills ?? []).isEmpty
-    }
-
-    var matchSkillsCard: some View {
-        glassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                sectionLabel(title: "Skills", icon: "star.fill", iconColor: AppTheme.lavender)
-
-                if let matched = job.matchedSkills, !matched.isEmpty {
-                    skillGroup(title: "On your resume", skills: matched, color: AppTheme.teal, icon: "checkmark")
-                }
-                if let missing = job.missingSkills, !missing.isEmpty {
-                    skillGroup(title: "Missing from your resume", skills: missing, color: AppTheme.amber, icon: "plus")
-                    Text("Add the ones you have, or use Optimize to work them in.")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.4))
-                }
-            }
-        }
-    }
-
-    private func skillGroup(title: String, skills: [String], color: Color, icon: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], alignment: .leading, spacing: 8) {
-                ForEach(skills, id: \.self) { skill in
-                    HStack(spacing: 4) {
-                        Image(systemName: icon)
-                            .font(.system(size: 8, weight: .bold))
-                        Text(skill)
-                            .font(.system(size: 11, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .foregroundColor(color)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
-                    .background(color.opacity(0.12))
-                    .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 0.5))
-                    .clipShape(Capsule())
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(title): \(skills.joined(separator: ", "))")
     }
 
     var descriptionCard: some View {

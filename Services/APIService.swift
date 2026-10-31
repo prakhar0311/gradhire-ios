@@ -27,151 +27,85 @@ final class APIService {
         _ = try? await session.data(for: request)
     }
     
-    // MARK: - Optimize Resume
-    
-    func optimizeResume(
+    // MARK: - Resume Analysis (Optimize screen)
+
+    /// Signed-in users pass their saved resume and the job, so the result is
+    /// stored and reopening is instant.
+    struct AnalysisAccount {
+        let resumeId: UUID
+        let jobId: UUID
+        let accessToken: String
+    }
+
+    /// Step 1: the job's keywords, matched vs missing, the original's score,
+    /// and the stored full result if this pair was optimized before.
+    func analyzeResume(
         resumeText: String,
-        jobTitle: String,
         jobDescription: String,
-        completion: @escaping (Result<ResumeOptimizationResponse, Error>) -> Void
-    ) {
-        
-        guard let url = URL(string: APIConstants.optimizeResume) else {
-            completion(.failure(NSError(
-                domain: "API",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Invalid server URL"]
-            )))
-            return
-        }
-        
-        let body: [String: Any] = [
-            "resume_text": resumeText,
-            "job_title": jobTitle,
-            "job_description": jobDescription
-        ]
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+        account: AnalysisAccount?
+    ) async throws -> AnalysisStart {
+        let data = try await postAnalysis(
+            to: APIConstants.resumeAnalysis, resumeText: resumeText, jobDescription: jobDescription, account: account
+        )
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        } catch {
-            completion(.failure(error))
-            return
-        }
-        
-        session.dataTask(with: request) { data, response, error in
-            
-            DispatchQueue.main.async {
-                
-                if let error = error {
-                    completion(.failure(error))
-                    return
-                }
-                
-                guard let http = response as? HTTPURLResponse else {
-                    completion(.failure(NSError(
-                        domain: "API",
-                        code: -2,
-                        userInfo: [NSLocalizedDescriptionKey: "Invalid response"]
-                    )))
-                    return
-                }
-                
-                guard let data = data else {
-                    completion(.failure(NSError(
-                        domain: "API",
-                        code: -3,
-                        userInfo: [NSLocalizedDescriptionKey: "No response from server"]
-                    )))
-                    return
-                }
-                
-                // ✅ Handle server errors properly
-                guard (200...299).contains(http.statusCode) else {
-                    
-                    // Show FastAPI's "detail" text (e.g. rate limits), never raw JSON
-                    var serverMessage = "Optimization failed — please try again."
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let detail = json["detail"] as? String {
-                        serverMessage = detail
-                    }
-                    
-                    completion(.failure(NSError(
-                        domain: "Server",
-                        code: http.statusCode,
-                        userInfo: [NSLocalizedDescriptionKey: serverMessage]
-                    )))
-                    return
-                }
-                
-                do {
-                    var decoded = try JSONDecoder().decode(
-                        ResumeOptimizationResponse.self,
-                        from: data
-                    )
-
-                    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let resume = json["optimized_resume"] as? [String: Any] {
-                        decoded.optimizedResumeJSON = try? JSONSerialization.data(withJSONObject: resume)
-                    }
-
-                    completion(.success(decoded))
-                    
-                } catch {
-                    completion(.failure(NSError(
-                        domain: "Decode",
-                        code: -4,
-                        userInfo: [NSLocalizedDescriptionKey:
-                                    "Optimization failed — please try again."]
-                    )))
-                }
+            var start = try Self.analysisDecoder.decode(AnalysisStart.self, from: data)
+            if var result = start.result {
+                result.optimizedResumeJSON = Self.optimizedResumeJSON(in: data, path: ["result"])
+                start = AnalysisStart(analysis: start.analysis, result: result)
             }
-            
-        }.resume()
+            return start
+        } catch {
+            throw JobAPIError.invalidResponse
+        }
     }
-    
+
+    /// Step 2: rewritten bullets, the optimized resume and its score.
     func optimizeResume(
         resumeText: String,
-        jobTitle: String,
-        jobDescription: String
-    ) async throws -> ResumeOptimizationResponse {
-        try await withCheckedThrowingContinuation { continuation in
-            optimizeResume(
-                resumeText: resumeText,
-                jobTitle: jobTitle,
-                jobDescription: jobDescription
-            ) { continuation.resume(with: $0) }
+        jobDescription: String,
+        account: AnalysisAccount?
+    ) async throws -> OptimizationOutcome {
+        let data = try await postAnalysis(
+            to: APIConstants.resumeOptimizeV2, resumeText: resumeText, jobDescription: jobDescription, account: account
+        )
+        do {
+            var outcome = try Self.analysisDecoder.decode(OptimizationOutcome.self, from: data)
+            outcome.optimizedResumeJSON = Self.optimizedResumeJSON(in: data, path: [])
+            return outcome
+        } catch {
+            throw JobAPIError.invalidResponse
         }
     }
 
-    // MARK: - Score Resumes
-
-    /// Scores each resume against the job with the backend's matching logic
-    /// (the same function used for job match scores). Returns one score per text.
-    func scoreResumes(
-        jobDescription: String,
-        resumeTexts: [String]
-    ) async throws -> [Int] {
-
-        guard let url = URL(string: APIConstants.scoreResume) else {
+    /// The one-page PDF of the optimized resume. `keywords` decide which
+    /// bullets and projects are kept when trimming; `include` is the user's
+    /// own choice. Throws ResumeOverflowError when that choice doesn't fit.
+    func renderResume(
+        resumeJSON: Data,
+        keywords: [String],
+        include: IncludeChoice?,
+        jobDescription: String? = nil
+    ) async throws -> RenderedResume {
+        guard let url = URL(string: APIConstants.resumeRender),
+              let resume = try? JSONSerialization.jsonObject(with: resumeJSON) else {
             throw JobAPIError.invalidResponse
         }
 
-        var request = URLRequest(url: url)
+        var body: [String: Any] = ["resume": resume, "keywords": Array(keywords.prefix(40))]
+        if let include {
+            body["include"] = include.json
+            // Re-score exactly the PDF the user chose
+            if let jobDescription { body["job_description"] = jobDescription }
+        }
+
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.httpMethod = "POST"
-        request.timeoutInterval = 20
+        request.timeoutInterval = 60
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "job_description": jobDescription,
-            "resume_texts": resumeTexts
-        ])
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let data: Data
         let response: URLResponse
-
         do {
             (data, response) = try await session.data(for: request)
         } catch let error as URLError where error.code == .cancelled {
@@ -180,14 +114,86 @@ final class APIService {
             throw JobAPIError.from(error)
         }
 
-        guard let http = response as? HTTPURLResponse,
-              (200...299).contains(http.statusCode),
-              let decoded = try? JSONDecoder().decode(ResumeScoreResponse.self, from: data),
-              decoded.scores.count == resumeTexts.count else {
-            throw JobAPIError.invalidResponse
+        guard let http = response as? HTTPURLResponse else { throw JobAPIError.invalidResponse }
+        guard (200...299).contains(http.statusCode) else {
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let detail = json?["detail"] as? String
+            if http.statusCode == 422, json?["overflow_lines"] != nil, let detail {
+                throw ResumeOverflowError(message: detail)
+            }
+            throw JobAPIError.server(detail ?? "Couldn't create the PDF (error \(http.statusCode)). Please try again.")
         }
 
-        return decoded.scores
+        guard let header = http.value(forHTTPHeaderField: "X-Resume-Layout"),
+              let layout = try? Self.analysisDecoder.decode(ResumeLayout.self, from: Data(header.utf8)),
+              data.starts(with: Data("%PDF".utf8)) else {
+            throw JobAPIError.invalidResponse
+        }
+        let score = http.value(forHTTPHeaderField: "X-Resume-Score")
+            .flatMap { try? Self.analysisDecoder.decode(AnalysisScore.self, from: Data($0.utf8)) }
+        return RenderedResume(pdf: data, layout: layout, score: score)
+    }
+
+    private static let analysisDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
+
+    /// The "optimized_resume" object, kept as raw JSON for the PDF.
+    private static func optimizedResumeJSON(in data: Data, path: [String]) -> Data? {
+        guard var object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        for key in path {
+            guard let next = object[key] as? [String: Any] else { return nil }
+            object = next
+        }
+        guard let resume = object["optimized_resume"] as? [String: Any] else { return nil }
+        return try? JSONSerialization.data(withJSONObject: resume)
+    }
+
+    private func postAnalysis(
+        to endpoint: String,
+        resumeText: String,
+        jobDescription: String,
+        account: AnalysisAccount?
+    ) async throws -> Data {
+        guard let url = URL(string: endpoint) else { throw JobAPIError.invalidResponse }
+
+        var body: [String: Any] = [
+            "resume_text": resumeText,
+            "job_description": jobDescription
+        ]
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 90
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let account {
+            body["resume_id"] = account.resumeId.uuidString.lowercased()
+            body["job_id"] = account.jobId.uuidString.lowercased()
+            request.setValue("Bearer \(account.accessToken)", forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            throw JobAPIError.from(error)
+        }
+
+        guard let http = response as? HTTPURLResponse else { throw JobAPIError.invalidResponse }
+        guard (200...299).contains(http.statusCode) else {
+            // The server's own reason (rate limit, "couldn't rewrite reliably", ...)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let detail = json["detail"] as? String {
+                throw JobAPIError.server(detail)
+            }
+            throw JobAPIError.server("Resume analysis failed (error \(http.statusCode)). Please try again.")
+        }
+        return data
     }
 
     // MARK: - Upload Resume
@@ -300,156 +306,4 @@ final class APIService {
             
         }.resume()
     }
-    
-    // MARK: - Download Optimized Resume
-    
-    /// The optimized resume as PDF data (for saving a tailored version). The
-    /// temporary file is removed straight away.
-    func optimizedResumePDF(
-        resumeData: Data,
-        jobDescription: String,
-        optimizedResumeJSON: Data?
-    ) async throws -> Data {
-        let url: URL = try await withCheckedThrowingContinuation { continuation in
-            downloadOptimizedResume(
-                resumeData: resumeData,
-                jobDescription: jobDescription,
-                optimizedResumeJSON: optimizedResumeJSON
-            ) { result in
-                continuation.resume(with: result)
-            }
-        }
-        defer { try? FileManager.default.removeItem(at: url) }
-        return try Data(contentsOf: url)
-    }
-
-    func downloadOptimizedResume(
-        resumeData: Data,
-        jobDescription: String,
-        optimizedResumeJSON: Data? = nil,
-        completion: @escaping (Result<URL, Error>) -> Void
-    ) {
-
-        if jobDescription
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty {
-
-            completion(.failure(NSError(
-                domain: "Download",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey:
-                            "This job has no description, so the resume can't be tailored to it."]
-            )))
-            return
-        }
-
-        guard let url = URL(string: APIConstants.downloadResume) else {
-
-            completion(.failure(NSError(
-                domain: "API",
-                code: -1,
-                userInfo: [NSLocalizedDescriptionKey:
-                            "Could not download the updated resume. Try again."]
-            )))
-            return
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        let boundary = UUID().uuidString
-        request.setValue(
-            "multipart/form-data; boundary=\(boundary)",
-            forHTTPHeaderField: "Content-Type"
-        )
-
-        var body = Data()
-
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append(
-            "Content-Disposition: form-data; name=\"file\"; filename=\"resume.pdf\"\r\n"
-                .data(using: .utf8)!
-        )
-        body.append("Content-Type: application/pdf\r\n\r\n".data(using: .utf8)!)
-        body.append(resumeData)
-        body.append("\r\n".data(using: .utf8)!)
-
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append(
-            "Content-Disposition: form-data; name=\"job_description\"\r\n\r\n"
-                .data(using: .utf8)!
-        )
-        body.append(jobDescription.data(using: .utf8) ?? Data())
-        body.append("\r\n".data(using: .utf8)!)
-
-        // Build the PDF from the resume that was shown and scored
-        if let optimizedResumeJSON {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append(
-                "Content-Disposition: form-data; name=\"optimized_resume\"\r\n\r\n"
-                    .data(using: .utf8)!
-            )
-            body.append(optimizedResumeJSON)
-            body.append("\r\n".data(using: .utf8)!)
-        }
-
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-
-        request.httpBody = body
-
-        session.downloadTask(with: request) { tempURL, response, error in
-
-            // iOS deletes tempURL as soon as this handler returns, so the file
-            // is copied (or the error body read) here, before hopping to main
-            let result: Result<URL, Error>
-
-            if let error {
-                // Offline, timed out, server unreachable: say which
-                result = .failure(JobAPIError.from(error))
-
-            } else if let http = response as? HTTPURLResponse,
-                      (200...299).contains(http.statusCode),
-                      let tempURL {
-
-                // A temporary copy just for the share sheet; the caller
-                // deletes it when sharing ends, and launch cleans up tmp
-                let shareURL = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("GradHire_Resume_\(UUID().uuidString.prefix(8)).pdf")
-                do {
-                    try FileManager.default.copyItem(at: tempURL, to: shareURL)
-                    result = .success(shareURL)
-                } catch {
-                    result = .failure(NSError(
-                        domain: "Download",
-                        code: -4,
-                        userInfo: [NSLocalizedDescriptionKey:
-                                    "Could not save the updated resume on this device. Try again."]
-                    ))
-                }
-
-            } else {
-                // The server's own reason ("Could not read the PDF file", a
-                // rate limit, ...) instead of a generic message
-                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-                var message = "Could not download the updated resume (error \(status)). Try again."
-                if let tempURL,
-                   let data = try? Data(contentsOf: tempURL),
-                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let detail = json["detail"] as? String {
-                    message = detail
-                }
-                result = .failure(NSError(
-                    domain: "Download",
-                    code: -3,
-                    userInfo: [NSLocalizedDescriptionKey: message]
-                ))
-            }
-
-            DispatchQueue.main.async {
-                completion(result)
-            }
-
-        }.resume()
-    }
 }
-

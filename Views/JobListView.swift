@@ -581,7 +581,16 @@ struct DarkJobCard: View {
                 .accessibilityLabel(isSaved ? "Remove from tracker" : "Save to tracker")
 
                 if let matchScore = job.matchScore {
-                    DarkMatchRing(score: matchScore)
+                    // The quick word-overlap match (Optimize has the detailed score)
+                    VStack(spacing: 2) {
+                        DarkMatchRing(score: matchScore)
+                        Text("Quick match")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.35))
+                            .fixedSize()
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Quick match \(matchScore) percent")
                 }
 
                 Image(systemName: "chevron.right")
@@ -634,9 +643,17 @@ struct DarkMatchRing: View {
     var size: CGFloat = 42
     var lineWidth: CGFloat = 4
     var isLoading = false
+    /// Animate from this score (e.g. before → after) instead of from zero
+    var from: Int? = nil
+    /// A soft glow in the ring's colors (hero use)
+    var glows = false
+    /// Called when the ring reaches `score` (e.g. for a haptic)
+    var onReveal: (() -> Void)? = nil
 
     @State private var progress: CGFloat = 0
+    @State private var shown: Int?
     @State private var spin = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var ringColors: [Color] {
         switch score {
@@ -688,27 +705,54 @@ struct DarkMatchRing: View {
                     )
                     .rotationEffect(.degrees(-90))
 
-                Text("\(score)%")
+                Text("\(shown ?? score)%")
                     .font(.system(size: max(9, size * 0.22), weight: .bold))
                     .foregroundColor(.white)
-                    .contentTransition(.numericText(value: Double(score)))
-                    .animation(.easeInOut(duration: 1.0), value: score)
+                    .contentTransition(.numericText(value: Double(shown ?? score)))
             }
         }
         .frame(width: size, height: size)
+        .shadow(color: glows ? (ringColors.first ?? .clear).opacity(0.45) : .clear, radius: glows ? size * 0.14 : 0)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(isLoading ? "Calculating score" : "Match score \(score) percent")
+        .accessibilityLabel(accessibilityText)
         .onAppear {
-            withAnimation(.easeOut(duration: 1.0)) {
-                progress = CGFloat(score) / 100
+            guard !isLoading else { return }
+            if let from, from != score {
+                progress = CGFloat(from) / 100
+                shown = from
+                reveal(after: 0.35)
+            } else {
+                reveal(after: 0)
             }
         }
         // Animate from the previous value to the new one (not from zero)
-        .onChange(of: score) { _, newScore in
-            withAnimation(.easeInOut(duration: 1.0)) {
-                progress = CGFloat(newScore) / 100
+        .onChange(of: score) { _, _ in
+            reveal(after: 0)
+        }
+    }
+
+    private func reveal(after delay: Double) {
+        guard !reduceMotion else {
+            progress = CGFloat(score) / 100
+            shown = score
+            onReveal?()
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.easeInOut(duration: from == nil ? 1.0 : 1.2)) {
+                progress = CGFloat(score) / 100
+                shown = score
+            }
+            if onReveal != nil {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { onReveal?() }
             }
         }
+    }
+
+    private var accessibilityText: String {
+        if isLoading { return "Calculating score" }
+        if let from, from != score { return "Score \(from) before, \(score) after" }
+        return "Match score \(score) percent"
     }
 }
 
