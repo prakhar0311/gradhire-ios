@@ -13,7 +13,17 @@ enum LocalStore {
         if let container = try? ModelContainer(for: schema, configurations: configuration) {
             return container
         }
-        // A broken store must not stop the app; the server copy is the truth
+        // A store that can't be opened (e.g. damaged) is only a cache of the
+        // server copy: start a fresh one on disk, so offline edits made from
+        // now on survive a relaunch
+        let store = configuration.url
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.removeItem(at: URL(fileURLWithPath: store.path + suffix))
+        }
+        if let container = try? ModelContainer(for: schema, configurations: configuration) {
+            return container
+        }
+        // Last resort: the app must still start
         let memory = ModelConfiguration("Tracker", schema: schema, isStoredInMemoryOnly: true)
         return try! ModelContainer(for: schema, configurations: memory)
     }()
