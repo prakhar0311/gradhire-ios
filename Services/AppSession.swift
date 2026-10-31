@@ -347,6 +347,9 @@ enum LaunchCleanup {
         for item in items where item.pathExtension.lowercased() == "pdf" {
             try? FileManager.default.removeItem(at: item)
         }
+        // Saved-resume previews and shares; left behind if the app was
+        // killed while one was open
+        try? FileManager.default.removeItem(at: tmp.appendingPathComponent("SavedResumes", isDirectory: true))
     }
 
     /// Optimized resumes the previous version kept in Documents.
