@@ -21,6 +21,8 @@ struct ApplyLinkButton<Label: View>: View {
     @EnvironmentObject private var tracker: TrackerStore
     @EnvironmentObject private var session: AppSession
     @State private var sheetURL: URL?
+    /// A quick second tap while Safari is opening is ignored
+    @State private var isOpening = false
 
     static var unavailableMessage: String { "This job's apply link isn't available." }
 
@@ -46,8 +48,11 @@ struct ApplyLinkButton<Label: View>: View {
             tracker.applyOpened(job, externally: false)
             sheetURL = url
         case .browser:
+            guard !isOpening else { return }
+            isOpening = true
             tracker.applyOpened(job, externally: true)
             openURL(url) { accepted in
+                isOpening = false
                 guard !accepted else { return }
                 tracker.applyOpenFailed()
                 session.notice = Self.unavailableMessage
