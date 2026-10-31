@@ -18,6 +18,8 @@ struct UploadResumeView: View {
     @State private var showAIConsent = false
     @State private var isSaving = false
 
+    private static let maxFileSize = 5 * 1024 * 1024
+
     // Asked once, before the first resume is sent to GradHire's server and OpenAI
     @AppStorage("ai_data_consent_v1") private var hasAIConsent = false
 
@@ -404,6 +406,14 @@ struct UploadResumeView: View {
 
             // Read it now, into memory; a guest's resume is never written to disk
             let canAccess = url.startAccessingSecurityScopedResource()
+            // Same limit as the server and storage; checked before reading it
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            guard size <= Self.maxFileSize else {
+                if canAccess { url.stopAccessingSecurityScopedResource() }
+                errorMessage = "This PDF is larger than 5 MB. Upload a smaller file."
+                showRetry = true
+                return
+            }
             let data = try? Data(contentsOf: url)
             if canAccess { url.stopAccessingSecurityScopedResource() }
 
