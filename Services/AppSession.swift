@@ -226,6 +226,9 @@ final class AppSession: ObservableObject {
                 notice = "Signed in. Your resume is saved to your account."
             } catch ResumeSaveError.originalLimit {
                 notice = "Signed in. Your account already has the most resumes it can save."
+                // The sign-in sheet may still be closing; SwiftUI drops a
+                // second sheet presented during that animation
+                try? await Task.sleep(nanoseconds: 700_000_000)
                 resumeLimitPrompt = .originals
             } catch {
                 notice = "Signed in. Your resume couldn't be saved to your account."
