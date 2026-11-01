@@ -13,8 +13,14 @@ struct TrackerView: View {
     @State private var statusChoice: TrackedApplication?
 
     private var visibleItems: [TrackedApplication] {
-        guard let filter = router.trackerFilter else { return tracker.items }
-        return tracker.items.filter { $0.status == filter }
+        tracker.items(matching: router.trackerFilter)
+    }
+
+    /// All · Bookmarked · Applied … Rejected. Saved shows only when the
+    /// dashboard's Saved tile picked it, so the selection stays visible.
+    private var chipFilters: [TrackerFilter] {
+        let statuses = ApplicationStatus.allCases.filter { $0 != .saved || router.trackerFilter == .status(.saved) }
+        return [.bookmarked] + statuses.map { .status($0) }
     }
 
     var body: some View {
@@ -195,23 +201,26 @@ struct TrackerView: View {
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(title: "All", count: tracker.count(for: nil), status: nil)
-                ForEach(ApplicationStatus.allCases, id: \.self) { status in
-                    chip(title: status.title, count: tracker.count(for: status), status: status)
+                chip(title: "All", count: tracker.items.count, filter: nil)
+                ForEach(chipFilters, id: \.self) { filter in
+                    chip(title: filter.title, count: tracker.items(matching: filter).count, filter: filter)
                 }
             }
             .padding(.horizontal, 16)
         }
     }
 
-    private func chip(title: String, count: Int, status: ApplicationStatus?) -> some View {
-        let isSelected = router.trackerFilter == status
-        let tint = status?.color ?? AppTheme.lavender
+    private func chip(title: String, count: Int, filter: TrackerFilter?) -> some View {
+        let isSelected = router.trackerFilter == filter
+        let tint = switch filter {
+        case .status(let status): status.color
+        case .bookmarked, nil: AppTheme.lavender
+        }
 
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                router.trackerFilter = status
+                router.trackerFilter = filter
             }
         } label: {
             HStack(spacing: 6) {

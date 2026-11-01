@@ -390,7 +390,7 @@ private struct PipelineSection: View {
         let count = tracker.count(for: status)
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            router.trackerFilter = status
+            router.trackerFilter = .status(status)
             router.show(.tracker)
         } label: {
             VStack(alignment: .leading, spacing: 4) {

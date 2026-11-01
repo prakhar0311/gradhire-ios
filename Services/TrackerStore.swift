@@ -26,6 +26,21 @@ final class TrackerStore: ObservableObject {
     @Published var applyPrompt: Job?
 
     private var statusByJob: [UUID: ApplicationStatus] = [:]
+    private var bookmarkedJobs: Set<UUID> = []
+
+    /// Tapping a filled bookmark that needs a confirmation first.
+    enum BookmarkConfirmation: Identifiable, Equatable {
+        /// Status Saved with notes: removing the bookmark removes the entry
+        case removeWithNotes(Job)
+        /// Applied or later: only the bookmark goes, the status stays
+        case unbookmark(Job, ApplicationStatus)
+
+        var id: UUID {
+            switch self {
+            case .removeWithNotes(let job), .unbookmark(let job, _): return job.id
+            }
+        }
+    }
 
     private let repository: any ApplicationRepository
     private let context: ModelContext
@@ -50,6 +65,11 @@ final class TrackerStore: ObservableObject {
         statusByJob[jobId]
     }
 
+    /// The bookmark icon: saved by the user, whatever the status.
+    func isBookmarked(_ jobId: UUID) -> Bool {
+        bookmarkedJobs.contains(jobId)
+    }
+
     func item(for jobId: UUID) -> TrackedApplication? {
         items.first { $0.jobId == jobId }
     }
@@ -59,11 +79,11 @@ final class TrackerStore: ObservableObject {
         return items.filter { $0.status == status }.count
     }
 
-    /// Unsaving a job that's past Saved deletes its history, so ask first.
-    func needsRemoveConfirmation(_ jobId: UUID) -> Bool {
-        guard let status = status(for: jobId) else { return false }
-        return status != .saved
+    func items(matching filter: TrackerFilter?) -> [TrackedApplication] {
+        guard let filter else { return items }
+        return items.filter(filter.matches)
     }
+
 
     // MARK: Account Changes
 
@@ -108,30 +128,57 @@ final class TrackerStore: ObservableObject {
 
     // MARK: Changes
 
-    /// Bookmark button: saves the job, or removes it if already tracked.
-    /// Guests are asked to sign in first.
-    func toggleSave(_ job: Job) {
+    /// Bookmark button. The bookmark is separate from the status:
+    /// - untracked: save it (Saved, bookmarked)
+    /// - tracked but not bookmarked: bookmark it, status unchanged
+    /// - bookmarked and only Saved: remove it (asks first if it has notes)
+    /// - bookmarked and Applied or later: asks, then only the bookmark goes
+    /// Returns the confirmation to show, if any. Guests are asked to sign in.
+    func bookmarkTapped(_ job: Job) -> BookmarkConfirmation? {
         guard isSignedIn else {
             signInPromptJob = job
-            return
+            return nil
         }
-        if status(for: job.id) != nil {
-            remove(job.id)
-        } else {
+        guard let status = status(for: job.id) else {
             save(job)
+            return nil
         }
+        guard isBookmarked(job.id) else {
+            setBookmarked(true, for: job.id)
+            return nil
+        }
+        guard status == .saved else { return .unbookmark(job, status) }
+        if let notes = item(for: job.id)?.notes, !notes.isEmpty { return .removeWithNotes(job) }
+        remove(job.id)
+        return nil
     }
 
-    func save(_ job: Job, status: ApplicationStatus = .saved) {
+    func setBookmarked(_ isBookmarked: Bool, for jobId: UUID) {
+        guard let model = model(for: jobId), model.syncState != .pendingDelete,
+              model.isBookmarked != isBookmarked else { return }
+        model.isBookmarked = isBookmarked
+        model.touch()
+        commit()
+    }
+
+    /// `bookmarked: false` when the user didn't bookmark it ("Did you apply?
+    /// Yes" on a job they never saved). Saving never clears a bookmark.
+    func save(_ job: Job, status: ApplicationStatus = .saved, bookmarked: Bool = true) {
         guard let userId else { return }
 
         if let model = model(for: job.id) {
-            if model.syncState == .pendingDelete { model.syncState = .pendingUpsert }
+            if model.syncState == .pendingDelete {
+                model.syncState = .pendingUpsert
+                model.isBookmarked = bookmarked
+            } else if bookmarked {
+                model.isBookmarked = true
+            }
             model.snapshot = job.snapshot
             model.touch()
             setStatus(status, on: model)
         } else {
-            let model = TrackedJob(ownerId: userId, jobId: job.id, status: .saved, snapshot: job.snapshot)
+            let model = TrackedJob(ownerId: userId, jobId: job.id, status: .saved, snapshot: job.snapshot,
+                                   isBookmarked: bookmarked)
             context.insert(model)
             setStatus(status, on: model)
         }
@@ -176,6 +223,8 @@ final class TrackerStore: ObservableObject {
             model.appliedAt = Date()
         } else if status == .saved {
             model.appliedAt = nil
+            // A Saved job is in the tracker because it's bookmarked
+            model.isBookmarked = true
         }
     }
 
@@ -230,7 +279,8 @@ final class TrackerStore: ObservableObject {
         if status(for: job.id) != nil {
             setStatus(.applied, for: job.id)
         } else {
-            save(job, status: .applied)
+            // Tracked as Applied; not bookmarked, the user never saved it
+            save(job, status: .applied, bookmarked: false)
         }
     }
 
@@ -317,7 +367,8 @@ final class TrackerStore: ObservableObject {
                 savedAt: model.savedAt,
                 appliedAt: model.appliedAt,
                 followUpAt: model.followUpAt,
-                jobSnapshot: model.snapshot
+                jobSnapshot: model.snapshot,
+                isBookmarked: model.isBookmarked
             )
 
             let record: ApplicationRecord
@@ -390,6 +441,7 @@ final class TrackerStore: ObservableObject {
         guard let userId else {
             items = []
             statusByJob = [:]
+            bookmarkedJobs = []
             pendingCount = 0
             return
         }
@@ -404,6 +456,7 @@ final class TrackerStore: ObservableObject {
 
         items = visible
         statusByJob = Dictionary(visible.map { ($0.jobId, $0.status) }, uniquingKeysWith: { first, _ in first })
+        bookmarkedJobs = Set(visible.filter(\.isBookmarked).map(\.jobId))
     }
 
     private func models(owner: UUID) -> [TrackedJob] {
@@ -448,5 +501,34 @@ final class TrackerStore: ObservableObject {
             return "You're offline. Changes are saved on this device and will sync later."
         }
         return TrackerError.serverBusy.localizedDescription
+    }
+}
+
+// MARK: - Tracker Filter
+
+/// A tracker list filter: bookmarked jobs (whatever their status), or one status.
+enum TrackerFilter: Hashable {
+    case bookmarked
+    case status(ApplicationStatus)
+
+    var title: String {
+        switch self {
+        case .bookmarked: "Bookmarked"
+        case .status(let status): status.title
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .bookmarked: "bookmark.fill"
+        case .status(let status): status.icon
+        }
+    }
+
+    func matches(_ item: TrackedApplication) -> Bool {
+        switch self {
+        case .bookmarked: item.isBookmarked
+        case .status(let status): item.status == status
+        }
     }
 }

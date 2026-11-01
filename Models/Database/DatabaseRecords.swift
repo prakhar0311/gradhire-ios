@@ -158,6 +158,8 @@ nonisolated struct ApplicationRecord: Codable, Sendable, Identifiable {
     let updatedAt: Date
     var followUpAt: Date?
     var jobSnapshot: JobSnapshot
+    /// Bookmarked by the user, independent of status
+    var isBookmarked: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, status, notes
@@ -169,6 +171,7 @@ nonisolated struct ApplicationRecord: Codable, Sendable, Identifiable {
         case updatedAt = "updated_at"
         case followUpAt = "follow_up_at"
         case jobSnapshot = "job_snapshot"
+        case isBookmarked = "is_bookmarked"
     }
 }
 
@@ -188,6 +191,8 @@ extension ApplicationRecord {
         followUpAt = try container.decodeIfPresent(Date.self, forKey: .followUpAt)
         // A malformed snapshot must not hide the application
         jobSnapshot = (try? container.decodeIfPresent(JobSnapshot.self, forKey: .jobSnapshot)) ?? JobSnapshot()
+        // Rows from before bookmarks existed count as bookmarked
+        isBookmarked = (try? container.decodeIfPresent(Bool.self, forKey: .isBookmarked)) ?? true
     }
 }
 
@@ -254,6 +259,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
     let appliedAt: Date?
     let followUpAt: Date?
     let jobSnapshot: JobSnapshot
+    let isBookmarked: Bool
 
     enum CodingKeys: String, CodingKey {
         case status, notes
@@ -263,6 +269,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
         case appliedAt = "applied_at"
         case followUpAt = "follow_up_at"
         case jobSnapshot = "job_snapshot"
+        case isBookmarked = "is_bookmarked"
     }
 
     func encode(to encoder: Encoder) throws {
@@ -276,6 +283,7 @@ nonisolated struct ApplicationUpsert: Encodable, Sendable {
         try container.encode(appliedAt, forKey: .appliedAt)
         try container.encode(followUpAt, forKey: .followUpAt)
         try container.encode(jobSnapshot, forKey: .jobSnapshot)
+        try container.encode(isBookmarked, forKey: .isBookmarked)
     }
 }
 

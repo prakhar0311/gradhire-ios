@@ -27,6 +27,8 @@ final class TrackedJob {
     var updatedAt: Date
     /// When the user last followed up (dashboard "Mark followed up")
     var followUpAt: Date?
+    /// Bookmarked (saved) by the user, independent of status
+    var isBookmarked: Bool = true
 
     var syncRaw: String
     /// Bumped on every local edit, so a sync response never overwrites an
@@ -43,8 +45,9 @@ final class TrackedJob {
     var matchScore: Int?
     var jobDescription: String
 
-    init(ownerId: UUID, jobId: UUID, status: ApplicationStatus, snapshot: JobSnapshot) {
+    init(ownerId: UUID, jobId: UUID, status: ApplicationStatus, snapshot: JobSnapshot, isBookmarked: Bool = true) {
         self.key = Self.key(ownerId: ownerId, jobId: jobId)
+        self.isBookmarked = isBookmarked
         self.ownerId = ownerId
         self.jobId = jobId
         self.applicationId = nil
@@ -121,6 +124,7 @@ final class TrackedJob {
         appliedAt = record.appliedAt
         updatedAt = record.updatedAt
         followUpAt = record.followUpAt
+        isBookmarked = record.isBookmarked
         // Keep the richer local snapshot if the server one is empty
         if !record.jobSnapshot.title.isEmpty { snapshot = record.jobSnapshot }
         syncState = .synced
@@ -140,6 +144,7 @@ struct TrackedApplication: Identifiable, Equatable {
     let followUpAt: Date?
     let snapshot: JobSnapshot
     let isPendingSync: Bool
+    let isBookmarked: Bool
 
     var id: UUID { jobId }
 
@@ -154,6 +159,7 @@ struct TrackedApplication: Identifiable, Equatable {
         followUpAt = model.followUpAt
         snapshot = model.snapshot
         isPendingSync = model.syncState != .synced
+        isBookmarked = model.isBookmarked
     }
 
     /// Applied at least `days` ago, still Applied, and not followed up in the

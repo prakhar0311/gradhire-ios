@@ -75,21 +75,20 @@ struct StatusTests {
     }
 
     /// The badge on job cards reads tracker.status(for:): it must follow
-    /// every change, and only a job past Saved asks before removing.
+    /// every change, independent of the bookmark.
     @Test func trackerStatusFollowsChanges() {
-        let tracker = TrackerStore(repository: OfflineApplications())
-        tracker.authChanged(.signedIn(AuthUser(id: UUID(), email: nil, name: "Test", provider: "email")))
+        let tracker = signedInTracker()
         defer { tracker.authChanged(.signedOut) }
 
         let saved = job()
-        tracker.toggleSave(saved)
+        #expect(tracker.bookmarkTapped(saved) == nil)
         #expect(tracker.status(for: saved.id) == .saved)
-        #expect(!tracker.needsRemoveConfirmation(saved.id))
+        #expect(tracker.isBookmarked(saved.id))
 
         for status in [ApplicationStatus.applied, .interviewing, .offer, .rejected] {
             tracker.setStatus(status, for: saved.id)
             #expect(tracker.status(for: saved.id) == status)
-            #expect(tracker.needsRemoveConfirmation(saved.id))
+            #expect(tracker.isBookmarked(saved.id))
         }
 
         tracker.remove(saved.id)
@@ -99,9 +98,127 @@ struct StatusTests {
     @Test func guestsCannotTrackJobs() {
         let tracker = TrackerStore(repository: OfflineApplications())
         let wanted = job()
-        tracker.toggleSave(wanted)
+        #expect(tracker.bookmarkTapped(wanted) == nil)
         #expect(tracker.status(for: wanted.id) == nil)
         #expect(tracker.signInPromptJob == wanted)
+    }
+}
+
+private func signedInTracker() -> TrackerStore {
+    let tracker = TrackerStore(repository: OfflineApplications())
+    tracker.authChanged(.signedIn(AuthUser(id: UUID(), email: nil, name: "Test", provider: "email")))
+    return tracker
+}
+
+// MARK: - Bookmarks
+
+@MainActor
+struct BookmarkTests {
+
+    @Test func unbookmarkingASavedJobRemovesIt() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let saved = job()
+        _ = tracker.bookmarkTapped(saved)
+        #expect(tracker.bookmarkTapped(saved) == nil)
+        #expect(tracker.status(for: saved.id) == nil)
+        #expect(!tracker.isBookmarked(saved.id))
+    }
+
+    @Test func savedJobWithNotesAsksBeforeRemoving() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let saved = job()
+        _ = tracker.bookmarkTapped(saved)
+        tracker.setNotes("Referral from Sam", for: saved.id)
+        guard case .removeWithNotes = tracker.bookmarkTapped(saved) else {
+            Issue.record("Expected a remove-with-notes confirmation"); return
+        }
+        #expect(tracker.status(for: saved.id) == .saved)
+    }
+
+    @Test func unbookmarkingAnAppliedJobKeepsItsStatus() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let applied = job()
+        _ = tracker.bookmarkTapped(applied)
+        tracker.setStatus(.interviewing, for: applied.id)
+        guard case .unbookmark(_, let status) = tracker.bookmarkTapped(applied) else {
+            Issue.record("Expected an unbookmark confirmation"); return
+        }
+        #expect(status == .interviewing)
+
+        tracker.setBookmarked(false, for: applied.id)
+        #expect(!tracker.isBookmarked(applied.id))
+        #expect(tracker.status(for: applied.id) == .interviewing)
+        #expect(tracker.items(matching: .bookmarked).isEmpty)
+        #expect(tracker.items(matching: .status(.interviewing)).count == 1)
+
+        // Bookmarking again keeps the status
+        #expect(tracker.bookmarkTapped(applied) == nil)
+        #expect(tracker.isBookmarked(applied.id))
+        #expect(tracker.status(for: applied.id) == .interviewing)
+    }
+
+    @Test func didYouApplyYesTracksWithoutBookmarking() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let untracked = job()
+        tracker.answerApplyPrompt(untracked, applied: true)
+        #expect(tracker.status(for: untracked.id) == .applied)
+        #expect(!tracker.isBookmarked(untracked.id))
+    }
+}
+
+// MARK: - Did You Apply?
+
+@MainActor
+struct ApplyPromptTests {
+
+    @Test func asksAfterEveryApplyUntilApplied() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let wanted = job()
+
+        for _ in 0..<2 {
+            tracker.applyOpened(wanted, externally: false)
+            tracker.checkApplyPrompt(fromForeground: false)
+            #expect(tracker.applyPrompt == wanted)
+            tracker.answerApplyPrompt(wanted, applied: false)
+            #expect(tracker.applyPrompt == nil)
+        }
+
+        tracker.applyOpened(wanted, externally: false)
+        tracker.checkApplyPrompt(fromForeground: false)
+        tracker.answerApplyPrompt(wanted, applied: true)
+        #expect(tracker.status(for: wanted.id) == .applied)
+
+        for status in [ApplicationStatus.applied, .interviewing, .offer, .rejected] {
+            tracker.setStatus(status, for: wanted.id)
+            tracker.applyOpened(wanted, externally: false)
+            tracker.checkApplyPrompt(fromForeground: false)
+            #expect(tracker.applyPrompt == nil)
+        }
+    }
+
+    @Test func safariAsksOnlyAfterLeavingTheApp() {
+        let tracker = signedInTracker()
+        defer { tracker.authChanged(.signedOut) }
+        let wanted = job()
+
+        // Coming back to the foreground without an Apply tap: no prompt
+        tracker.checkApplyPrompt(fromForeground: true)
+        #expect(tracker.applyPrompt == nil)
+
+        // Apply tapped but Safari never took over: no prompt
+        tracker.applyOpened(wanted, externally: true)
+        tracker.checkApplyPrompt(fromForeground: true)
+        #expect(tracker.applyPrompt == nil)
+
+        tracker.applyOpened(wanted, externally: true)
+        tracker.appMovedToBackground()
+        tracker.checkApplyPrompt(fromForeground: true)
+        #expect(tracker.applyPrompt == wanted)
     }
 }
 

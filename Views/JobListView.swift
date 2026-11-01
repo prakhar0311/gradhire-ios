@@ -24,7 +24,7 @@ struct JobListView: View {
     @EnvironmentObject private var search: JobSearchViewModel
     @EnvironmentObject private var resumeManager: ResumeManager
 
-    @State private var confirmRemove: Job?
+    @State private var bookmarkConfirmation: TrackerStore.BookmarkConfirmation?
     @FocusState private var searchFocused: Bool
 
     var body: some View {
@@ -76,7 +76,7 @@ struct JobListView: View {
                 AccountButton()
             }
         }
-        .removeTrackedJobDialog(job: $confirmRemove)
+        .bookmarkConfirmationDialog($bookmarkConfirmation)
         .onAppear {
             JobsDebug.log("Jobs appeared: tab=\(selectedTab.rawValue) resume=\(resumeManager.availability) forYou=\(matchedJobs.state) allJobs=\(allJobs.state)")
             search.setCountry(country)
@@ -386,11 +386,7 @@ struct JobListView: View {
     // MARK: - Shared Rows
 
     private func bookmarkTapped(_ job: Job) {
-        if tracker.needsRemoveConfirmation(job.id) {
-            confirmRemove = job
-        } else {
-            tracker.toggleSave(job)
-        }
+        bookmarkConfirmation = tracker.bookmarkTapped(job)
     }
 
     private var skeletonList: some View {
@@ -410,6 +406,7 @@ struct JobListView: View {
                 DarkJobCard(
                     job: item.job,
                     status: tracker.status(for: item.job.id),
+                    isBookmarked: tracker.isBookmarked(item.job.id),
                     onBookmarkTap: { bookmarkTapped(item.job) }
                 )
             }
@@ -483,12 +480,15 @@ struct JobsTabPicker: View {
 struct DarkJobCard: View {
 
     let job: Job
+    /// The real tracker status, shown as the badge
     let status: ApplicationStatus?
+    /// The bookmark icon only reflects this, not the status
+    let isBookmarked: Bool
     let onBookmarkTap: () -> Void
 
     @State private var pulse = false
 
-    private var isSaved: Bool { status != nil }
+    private var isSaved: Bool { isBookmarked }
 
     private var iconColor: Color {
         switch job.matchScore {

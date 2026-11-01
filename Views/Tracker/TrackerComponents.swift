@@ -43,6 +43,52 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: - Bookmark Confirmation
+
+extension View {
+
+    /// Tapping a filled bookmark: Applied or later only clears the bookmark;
+    /// a Saved job with notes is removed (with its notes) after asking.
+    func bookmarkConfirmationDialog(_ confirmation: Binding<TrackerStore.BookmarkConfirmation?>) -> some View {
+        modifier(BookmarkConfirmationDialog(confirmation: confirmation))
+    }
+}
+
+private struct BookmarkConfirmationDialog: ViewModifier {
+
+    @Binding var confirmation: TrackerStore.BookmarkConfirmation?
+    @EnvironmentObject private var tracker: TrackerStore
+
+    private var title: String {
+        if case .removeWithNotes = confirmation { return "Remove from tracker?" }
+        return "Remove from saved jobs?"
+    }
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog(
+            title,
+            isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }),
+            titleVisibility: .visible,
+            presenting: confirmation
+        ) { confirmation in
+            switch confirmation {
+            case .removeWithNotes(let job):
+                Button("Remove", role: .destructive) { tracker.remove(job.id) }
+            case .unbookmark(let job, _):
+                Button("Remove from saved", role: .destructive) { tracker.setBookmarked(false, for: job.id) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { confirmation in
+            switch confirmation {
+            case .removeWithNotes(let job):
+                Text("\(job.title) at \(job.company) and your notes will be removed from your tracker.")
+            case .unbookmark(_, let status):
+                Text("Your application status (\(status.title)) stays in your tracker.")
+            }
+        }
+    }
+}
+
 // MARK: - Remove Confirmation
 
 extension View {
@@ -82,29 +128,21 @@ struct TrackJobButton: View {
     let job: Job
 
     @EnvironmentObject private var tracker: TrackerStore
-    @State private var confirmRemove: Job?
+    @State private var confirmation: TrackerStore.BookmarkConfirmation?
 
     var body: some View {
-        let status = tracker.status(for: job.id)
+        let isBookmarked = tracker.isBookmarked(job.id)
 
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            if tracker.needsRemoveConfirmation(job.id) {
-                confirmRemove = job
-            } else {
-                tracker.toggleSave(job)
-            }
+            confirmation = tracker.bookmarkTapped(job)
         } label: {
-            Image(systemName: status == nil ? "bookmark" : "bookmark.fill")
+            Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
                 .font(.system(size: 15, weight: .semibold))
                 .contentTransition(.symbolEffect(.replace))
-                .foregroundColor(
-                    status == nil
-                    ? .white.opacity(0.6)
-                    : AppTheme.teal
-                )
+                .foregroundColor(isBookmarked ? AppTheme.teal : .white.opacity(0.6))
         }
-        .accessibilityLabel(status == nil ? "Save to tracker" : "Remove from tracker")
-        .removeTrackedJobDialog(job: $confirmRemove)
+        .accessibilityLabel(isBookmarked ? "Remove from saved jobs" : "Save job")
+        .bookmarkConfirmationDialog($confirmation)
     }
 }

@@ -15,7 +15,7 @@ enum AppTab: Hashable, CaseIterable {
 final class AppRouter: ObservableObject {
     @Published var tab: AppTab = .home
     @Published var jobsTab: JobsTab = .forYou
-    @Published var trackerFilter: ApplicationStatus?
+    @Published var trackerFilter: TrackerFilter?
     @Published var country = "in"
 
     /// Changing a tab's id rebuilds its navigation stack, i.e. pops it to
