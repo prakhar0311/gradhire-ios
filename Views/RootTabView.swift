@@ -19,14 +19,19 @@ final class AppRouter: ObservableObject {
     @Published var country = "in"
 
     /// Changing a tab's id rebuilds its navigation stack, i.e. pops it to
-    /// its first screen.
-    @Published private(set) var stackIDs: [AppTab: UUID] = [:]
+    /// its first screen. Every tab has its own id from the start: tabs that
+    /// shared one identity could leave a tab's page blank.
+    @Published private(set) var stackIDs: [AppTab: UUID] = AppRouter.freshStackIDs()
 
     func stackID(_ tab: AppTab) -> UUID {
-        stackIDs[tab] ?? Self.defaultID
+        stackIDs[tab] ?? Self.fallbackIDs[tab, default: UUID()]
     }
 
-    private static let defaultID = UUID()
+    private static let fallbackIDs = freshStackIDs()
+
+    private static func freshStackIDs() -> [AppTab: UUID] {
+        Dictionary(uniqueKeysWithValues: AppTab.allCases.map { ($0, UUID()) })
+    }
 
     func popToRoot(_ tab: AppTab) {
         stackIDs[tab] = UUID()
@@ -40,7 +45,7 @@ final class AppRouter: ObservableObject {
 
     /// Fresh navigation for a new session.
     func reset(for phase: AppSession.Phase) {
-        stackIDs = [:]
+        stackIDs = Self.freshStackIDs()
         trackerFilter = nil
         jobsTab = .forYou
         tab = phase == .signedIn ? .home : .resume
@@ -68,6 +73,7 @@ struct RootTabView: View {
         Binding(
             get: { router.tab },
             set: { newTab in
+                JobsDebug.log("tab \(router.tab) -> \(newTab)")
                 if newTab == .tracker && session.isGuest {
                     session.requireAccount(.tracker)
                 } else if newTab == router.tab {

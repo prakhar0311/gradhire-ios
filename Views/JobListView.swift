@@ -78,16 +78,38 @@ struct JobListView: View {
         }
         .removeTrackedJobDialog(job: $confirmRemove)
         .onAppear {
+            JobsDebug.log("Jobs appeared: tab=\(selectedTab.rawValue) resume=\(resumeManager.availability) forYou=\(matchedJobs.state) allJobs=\(allJobs.state)")
             search.setCountry(country)
-            if selectedTab == .allJobs {
-                allJobs.loadIfNeeded(country: country)
-            }
+            recover()
         }
+        .onDisappear { JobsDebug.log("Jobs disappeared") }
         .onChange(of: selectedTab) { _, tab in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             searchFocused = false
-            if tab == .allJobs {
-                allJobs.loadIfNeeded(country: country)
+            recover()
+        }
+        .onChange(of: resumeManager.availability) { _, availability in
+            JobsDebug.log("resume availability -> \(availability)")
+        }
+        .onChange(of: matchedJobs.state) { _, state in
+            JobsDebug.log("For You -> \(state)")
+        }
+        .onChange(of: allJobs.state) { _, state in
+            JobsDebug.log("All Jobs -> \(state)")
+        }
+    }
+
+    /// Opening the tab (or switching to a list) restarts anything stuck or
+    /// failed, so the tab always ends in content, empty or an error.
+    private func recover() {
+        switch selectedTab {
+        case .allJobs:
+            allJobs.loadIfNeeded(country: country)
+        case .forYou:
+            if resumeManager.availability == .failed {
+                resumeManager.refreshAccount()
+            } else {
+                matchedJobs.recoverIfNeeded()
             }
         }
     }

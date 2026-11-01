@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F4A1B0962FC0000100A1B0C1 /* JobsDebug.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0952FC0000100A1B0C1 /* JobsDebug.swift */; };
 		F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */; };
 		F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */; };
 		F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */; };
@@ -79,6 +80,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F4A1B0952FC0000100A1B0C1 /* JobsDebug.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobsDebug.swift; sourceTree = "<group>"; };
 		F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeComponents.swift; sourceTree = "<group>"; };
 		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
 		F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViewModel.swift; sourceTree = "<group>"; };
@@ -265,6 +267,7 @@
 				F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */,
 				F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */,
 				F4A1B0752FC0000100A1B0C1 /* LocalStore.swift */,
+				F4A1B0952FC0000100A1B0C1 /* JobsDebug.swift */,
 				F4A1B0842FC0000100A1B0C1 /* AppSession.swift */,
 			);
 			path = Services;
@@ -533,6 +536,7 @@
 				F4F06FBF2F2F3FBA0056BD2B /* JobAPIService.swift in Sources */,
 				F4A1B0022FC0000100A1B0C1 /* MatchedJobsViewModel.swift in Sources */,
 				F4A1B0042FC0000100A1B0C1 /* AllJobsViewModel.swift in Sources */,
+				F4A1B0962FC0000100A1B0C1 /* JobsDebug.swift in Sources */,
 				F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */,
 				F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */,
 				F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */,

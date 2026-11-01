@@ -17,6 +17,7 @@ final class AllJobsViewModel: ObservableObject {
     private var nextPage = 1
     private var loadedAt: Date?
     private var task: Task<Void, Never>?
+    private var watchdog: Task<Void, Never>?
 
     // Matches the backend cache TTL; older lists are refetched on appear.
     private let staleAfter: TimeInterval = 30 * 60
@@ -86,6 +87,15 @@ final class AllJobsViewModel: ObservableObject {
     private func loadFirstPage() {
         task?.cancel()
         state = .loading
+        // Loading always ends: after a minute, the error state with Retry
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 60_000_000_000)
+            guard !Task.isCancelled, let self, self.state == .loading else { return }
+            self.task?.cancel()
+            self.state = .failed("This is taking too long. Check your connection and try again.")
+            JobsDebug.log("All Jobs: loading timed out")
+        }
         isLoadingMore = false
         loadMoreError = nil
         refreshError = nil

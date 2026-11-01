@@ -27,6 +27,10 @@ final class MatchedJobsViewModel: ObservableObject {
     private(set) var accountResumeId: UUID?
     private var country = "in"
     private var task: Task<Void, Never>?
+    private var watchdog: Task<Void, Never>?
+
+    /// Loading always ends: after this, the error state with Retry shows
+    private static let loadingTimeout: UInt64 = 60_000_000_000
 
     /// Set once by the app, for signed-in users' stored matches.
     var repository: (any ResumeRepository)?
@@ -69,12 +73,23 @@ final class MatchedJobsViewModel: ObservableObject {
 
         task?.cancel()
         task = Task { await loadAccountMatches(resumeId: resumeId, force: false) }
+        startWatchdog()
+    }
+
+    /// The Jobs tab appeared: a failed or never-started load runs again.
+    func recoverIfNeeded() {
+        guard hasResume else { return }
+        switch state {
+        case .idle, .failed: retry()
+        case .loading, .loaded, .empty: break
+        }
     }
 
     /// Signed out: forget the resume and its matches.
     func reset() {
         task?.cancel()
         task = nil
+        watchdog?.cancel()
         resumeData = nil
         accountResumeId = nil
         jobs = []
@@ -87,6 +102,7 @@ final class MatchedJobsViewModel: ObservableObject {
             state = jobs.isEmpty ? .loading : state
             task?.cancel()
             task = Task { await loadAccountMatches(resumeId: accountResumeId, force: false) }
+            startWatchdog()
         } else {
             reload()
         }
@@ -126,6 +142,7 @@ final class MatchedJobsViewModel: ObservableObject {
 
         task?.cancel()
         state = .loading
+        startWatchdog()
 
         let country = country
         task = Task {
@@ -170,6 +187,17 @@ final class MatchedJobsViewModel: ObservableObject {
             guard accountResumeId == resumeId, !Task.isCancelled else { return }
             // Stored (or cached) matches stay on screen if the refresh fails
             if jobs.isEmpty { fail(with: error) }
+        }
+    }
+
+    private func startWatchdog() {
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: Self.loadingTimeout)
+            guard !Task.isCancelled, let self, self.state == .loading else { return }
+            self.task?.cancel()
+            self.state = .failed("This is taking too long. Check your connection and try again.")
+            JobsDebug.log("For You: loading timed out")
         }
     }
 
