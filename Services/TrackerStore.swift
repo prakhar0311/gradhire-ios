@@ -34,6 +34,10 @@ final class TrackerStore: ObservableObject {
     private var needsResync = false
     private var openedApplyJob: Job?
     private var openedApplyExternally = false
+    private var openedApplyAt: Date?
+    private var leftAppSinceApply = false
+    /// An Apply tap older than this doesn't prompt
+    private static let applyPromptWindow: TimeInterval = 3 * 60 * 60
 
     init(repository: any ApplicationRepository) {
         self.repository = repository
@@ -178,14 +182,15 @@ final class TrackerStore: ObservableObject {
     // MARK: "Did you apply?"
 
     /// Called when an apply link is opened, in the in-app browser sheet or in
-    /// Safari (`externally`). Asked once per job and account, and only if the
-    /// job isn't already marked as applied.
+    /// Safari (`externally`). Every Apply tap can ask again ("Not yet" only
+    /// closes that one prompt); a job past Saved is never asked about.
     func applyOpened(_ job: Job, externally: Bool) {
-        guard isSignedIn, let userId else { return }
-        if status(for: job.id)?.hasApplied == true { return }
-        if askedApplyJobs(userId).contains(job.id.uuidString) { return }
+        guard isSignedIn, userId != nil else { return }
+        if let status = status(for: job.id), status != .saved { return }
         openedApplyJob = job
         openedApplyExternally = externally
+        openedApplyAt = Date()
+        leftAppSinceApply = false
     }
 
     /// The browser couldn't open the link, so there's nothing to ask about.
@@ -193,17 +198,29 @@ final class TrackerStore: ObservableObject {
         openedApplyJob = nil
     }
 
+    /// The app went to the background (e.g. Safari opened the posting).
+    func appMovedToBackground() {
+        if openedApplyJob != nil { leftAppSinceApply = true }
+    }
+
     /// Called when the user is back: the in-app browser closed, or the app
-    /// returned to the foreground (`fromForeground`) after Safari.
+    /// returned to the foreground (`fromForeground`) after Safari. Only
+    /// after a real Apply tap: from the foreground, only if the app actually
+    /// went to the browser after that tap, and not hours later.
     func checkApplyPrompt(fromForeground: Bool) {
-        guard let job = openedApplyJob, let userId else { return }
-        // Back in the app while the in-app browser is still open isn't "back
-        // from applying"; wait for the sheet to close.
-        if fromForeground && !openedApplyExternally { return }
+        guard let job = openedApplyJob else { return }
+        if fromForeground {
+            // Back in the app while the in-app browser is still open isn't
+            // "back from applying"; wait for the sheet to close
+            guard openedApplyExternally, leftAppSinceApply else { return }
+        }
+        let openedAt = openedApplyAt
         openedApplyJob = nil
-        var asked = askedApplyJobs(userId)
-        asked.insert(job.id.uuidString)
-        UserDefaults.standard.set(Array(asked), forKey: askedKey(userId))
+        openedApplyAt = nil
+        leftAppSinceApply = false
+
+        if let openedAt, Date().timeIntervalSince(openedAt) > Self.applyPromptWindow { return }
+        if let status = status(for: job.id), status != .saved { return }
         applyPrompt = job
     }
 
@@ -215,14 +232,6 @@ final class TrackerStore: ObservableObject {
         } else {
             save(job, status: .applied)
         }
-    }
-
-    private func askedKey(_ userId: UUID) -> String {
-        "apply_prompted_v1_\(userId.uuidString.lowercased())"
-    }
-
-    private func askedApplyJobs(_ userId: UUID) -> Set<String> {
-        Set(UserDefaults.standard.stringArray(forKey: askedKey(userId)) ?? [])
     }
 
     // MARK: History

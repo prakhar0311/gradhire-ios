@@ -148,6 +148,7 @@ private struct TrackerLifecycle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: scenePhase) { _, phase in
+                if phase == .background { tracker.appMovedToBackground() }
                 guard phase == .active else { return }
                 tracker.checkApplyPrompt(fromForeground: true)
                 tracker.scheduleSync(after: 0)
