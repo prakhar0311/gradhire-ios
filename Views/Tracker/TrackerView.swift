@@ -16,11 +16,10 @@ struct TrackerView: View {
         tracker.items(matching: router.trackerFilter)
     }
 
-    /// All · Bookmarked · Applied … Rejected. Saved shows only when the
-    /// dashboard's Saved tile picked it, so the selection stays visible.
+    /// All · Saved · Applied … Rejected. "Saved" is every bookmarked job,
+    /// whatever its status (a job still at status Saved is always bookmarked).
     private var chipFilters: [TrackerFilter] {
-        let statuses = ApplicationStatus.allCases.filter { $0 != .saved || router.trackerFilter == .status(.saved) }
-        return [.bookmarked] + statuses.map { .status($0) }
+        [.bookmarked] + ApplicationStatus.allCases.filter { $0 != .saved }.map { .status($0) }
     }
 
     var body: some View {
@@ -262,7 +261,9 @@ struct TrackerView: View {
             return DarkInlineBanner(
                 message: error,
                 actionTitle: "Retry",
-                action: { Task { await tracker.sync() } }
+                action: { Task { await tracker.sync() } },
+                isBusy: tracker.isSyncing,
+                busyTitle: "Syncing…"
             )
         }
         return nil

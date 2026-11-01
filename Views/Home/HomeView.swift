@@ -386,11 +386,14 @@ private struct PipelineSection: View {
         }
     }
 
+    /// The Saved tile counts every saved (bookmarked) job and opens the
+    /// tracker's Saved list, so the two numbers always match.
     private func tile(_ status: ApplicationStatus) -> some View {
-        let count = tracker.count(for: status)
+        let filter: TrackerFilter = status == .saved ? .bookmarked : .status(status)
+        let count = tracker.items(matching: filter).count
         return Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            router.trackerFilter = .status(status)
+            router.trackerFilter = filter
             router.show(.tracker)
         } label: {
             VStack(alignment: .leading, spacing: 4) {

@@ -74,11 +74,6 @@ final class TrackerStore: ObservableObject {
         items.first { $0.jobId == jobId }
     }
 
-    func count(for status: ApplicationStatus?) -> Int {
-        guard let status else { return items.count }
-        return items.filter { $0.status == status }.count
-    }
-
     func items(matching filter: TrackerFilter?) -> [TrackedApplication] {
         guard let filter else { return items }
         return items.filter(filter.matches)
@@ -506,14 +501,14 @@ final class TrackerStore: ObservableObject {
 
 // MARK: - Tracker Filter
 
-/// A tracker list filter: bookmarked jobs (whatever their status), or one status.
+/// A tracker list filter: saved (bookmarked) jobs whatever their status, or one status.
 enum TrackerFilter: Hashable {
     case bookmarked
     case status(ApplicationStatus)
 
     var title: String {
         switch self {
-        case .bookmarked: "Bookmarked"
+        case .bookmarked: "Saved"
         case .status(let status): status.title
         }
     }

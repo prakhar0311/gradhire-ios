@@ -977,6 +977,9 @@ struct DarkInlineBanner: View {
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
+    /// The action is running: shows progress in place of the button
+    var isBusy = false
+    var busyTitle = "Loading…"
 
     var body: some View {
         HStack(spacing: 10) {
@@ -988,7 +991,16 @@ struct DarkInlineBanner: View {
                 .foregroundColor(.white.opacity(0.5))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let actionTitle, let action {
+            if isBusy {
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.mini)
+                        .tint(AppTheme.lavender)
+                    Text(busyTitle)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(AppTheme.lavender.opacity(0.7))
+                }
+            } else if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(AppTheme.lavender)
