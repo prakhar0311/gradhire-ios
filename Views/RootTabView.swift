@@ -73,7 +73,6 @@ struct RootTabView: View {
         Binding(
             get: { router.tab },
             set: { newTab in
-                JobsDebug.log("tab \(router.tab) -> \(newTab)")
                 if newTab == .tracker && session.isGuest {
                     session.requireAccount(.tracker)
                 } else if newTab == router.tab {

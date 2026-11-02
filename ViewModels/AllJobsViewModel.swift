@@ -94,7 +94,6 @@ final class AllJobsViewModel: ObservableObject {
             guard !Task.isCancelled, let self, self.state == .loading else { return }
             self.task?.cancel()
             self.state = .failed("This is taking too long. Check your connection and try again.")
-            JobsDebug.log("All Jobs: loading timed out")
         }
         isLoadingMore = false
         loadMoreError = nil
