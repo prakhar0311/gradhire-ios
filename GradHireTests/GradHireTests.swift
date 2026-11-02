@@ -413,5 +413,32 @@ struct AnalyticsEventTests {
     }
 }
 
+// MARK: - Backend Wake-up
+
+@MainActor
+struct BackendStatusTests {
+
+    /// A slow first request shows "Getting things ready…"; once the server
+    /// answers, it's awake and fast or slow requests no longer show it.
+    @Test func slowFirstRequestMeansWakingUntilTheServerAnswers() async throws {
+        let status = BackendStatus()
+        #expect(!status.isWaking)
+
+        status.requestStarted()
+        #expect(!status.isWaking) // not straight away
+        try await Task.sleep(for: .seconds(3.5))
+        #expect(status.isWaking)
+
+        status.requestFinished(HTTPURLResponse())
+        #expect(!status.isWaking)
+
+        // Answered recently: a slow request is just slow
+        status.requestStarted()
+        try await Task.sleep(for: .seconds(3.5))
+        #expect(!status.isWaking)
+        status.requestFinished(nil)
+    }
+}
+
 import SwiftUI
 private typealias EmptyLabel = EmptyView

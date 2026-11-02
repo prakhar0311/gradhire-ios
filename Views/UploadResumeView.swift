@@ -14,7 +14,7 @@ struct UploadResumeView: View {
     @State private var errorMessage: String?
     @StateObject private var network = NetworkMonitor.shared
     @State private var showRetry = false
-    @State private var showSlowServerHint = false
+    @StateObject private var backend = BackendStatus.shared
     @State private var showAIConsent = false
     @State private var isSaving = false
 
@@ -300,26 +300,17 @@ struct UploadResumeView: View {
 
     @ViewBuilder
     private var statusSection: some View {
-        if isUploading || isSaving {
+        if isUploading && !isSaving && backend.isWaking {
+            WakingNotice()
+
+        } else if isUploading || isSaving {
             HStack(spacing: 10) {
                 ProgressView()
                     .tint(AppTheme.violet)
-                Text(
-                    isSaving
-                    ? "Saving to your account…"
-                    : showSlowServerHint
-                    ? "Waking up the server. This can take up to a minute the first time."
-                    : "Analyzing resume..."
-                )
-                .font(.system(size: noteSize + 1))
-                .foregroundColor(.white.opacity(0.7))
-                .fixedSize(horizontal: false, vertical: true)
-            }
-            // A free-tier backend can take ~a minute to wake from idle
-            .task {
-                showSlowServerHint = false
-                try? await Task.sleep(nanoseconds: 8_000_000_000)
-                if !Task.isCancelled { showSlowServerHint = true }
+                Text(isSaving ? "Saving to your account…" : "Analyzing resume...")
+                    .font(.system(size: noteSize + 1))
+                    .foregroundColor(.white.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(14)
             .frame(maxWidth: .infinity)

@@ -57,6 +57,7 @@
 		F4A1B0A22FC0000100A1B0C1 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A12FC0000100A1B0C1 /* FirebaseAnalyticsCore */; };
 		F4A1B0A42FC0000100A1B0C1 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A32FC0000100A1B0C1 /* FirebaseCrashlytics */; };
 		F4A1B0A72FC0000100A1B0C1 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0A62FC0000100A1B0C1 /* Telemetry.swift */; };
+		F4A1B0A92FC0000100A1B0C1 /* BackendStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0A82FC0000100A1B0C1 /* BackendStatus.swift */; };
 		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
 		F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */; };
 		F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */; };
@@ -133,6 +134,7 @@
 		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
 		F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeComponents.swift; sourceTree = "<group>"; };
 		F4A1B0A62FC0000100A1B0C1 /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
+		F4A1B0A82FC0000100A1B0C1 /* BackendStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendStatus.swift; sourceTree = "<group>"; };
 		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkManager.swift; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 				F40D625F2F28E600004651FB /* APIService.swift */,
 				F4C820512F34E1390068DBAA /* NetworkMonitor.swift */,
 				F4A1B0A62FC0000100A1B0C1 /* Telemetry.swift */,
+				F4A1B0A82FC0000100A1B0C1 /* BackendStatus.swift */,
 				F4A1B0302FC0000100A1B0C1 /* SupabaseManager.swift */,
 				F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */,
 				F4A1B06B2FC0000100A1B0C1 /* TrackerStore.swift */,
@@ -612,6 +615,7 @@
 				F40D62582F28E03E004651FB /* Job.swift in Sources */,
 				F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */,
 				F4A1B0A72FC0000100A1B0C1 /* Telemetry.swift in Sources */,
+				F4A1B0A92FC0000100A1B0C1 /* BackendStatus.swift in Sources */,
 				F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */,
 				F40D62642F2A5510004651FB /* ResumeAnalysis.swift in Sources */,
 				F40D625A2F28E065004651FB /* JobListView.swift in Sources */,
@@ -781,7 +785,7 @@
 				CODE_SIGN_ENTITLEMENTS = GradHire.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 9U3N995J6M;
 				ENABLE_PREVIEWS = YES;
@@ -799,7 +803,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.gradhire;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -826,7 +830,7 @@
 				CODE_SIGN_ENTITLEMENTS = GradHire.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_TEAM = 9U3N995J6M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -843,7 +847,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.prakhar.gradhire;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

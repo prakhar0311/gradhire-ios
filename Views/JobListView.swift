@@ -23,6 +23,7 @@ struct JobListView: View {
     @EnvironmentObject private var allJobs: AllJobsViewModel
     @EnvironmentObject private var search: JobSearchViewModel
     @EnvironmentObject private var resumeManager: ResumeManager
+    @StateObject private var backend = BackendStatus.shared
 
     @State private var bookmarkConfirmation: TrackerStore.BookmarkConfirmation?
     @FocusState private var searchFocused: Bool
@@ -384,7 +385,13 @@ struct JobListView: View {
         bookmarkConfirmation = tracker.bookmarkTapped(job)
     }
 
+    @ViewBuilder
     private var skeletonList: some View {
+        if backend.isWaking {
+            WakingNotice()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+        }
         ForEach(0..<5, id: \.self) { _ in
             DarkSkeletonCard()
                 .padding(.horizontal, 16)

@@ -7,12 +7,11 @@ final class APIService {
     
     // MARK: - Shared Session (Production Config)
     
-    // 60s per request / 90s total: the free-tier backend can take about a
-    // minute to wake up after being idle.
+    // Long enough for the free-tier backend to wake up (see APIConstants)
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 90
+        config.timeoutIntervalForRequest = APIConstants.requestTimeout
+        config.timeoutIntervalForResource = APIConstants.resourceTimeout
         return URLSession(configuration: config)
     }()
 
@@ -23,8 +22,8 @@ final class APIService {
     func warmUpServer() async {
         guard let url = URL(string: APIConstants.baseURL) else { return }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 90
-        _ = try? await session.data(for: request)
+        request.timeoutInterval = APIConstants.requestTimeout
+        _ = try? await session.backendData(for: request)
     }
     
     // MARK: - Resume Analysis (Optimize screen)
@@ -100,14 +99,14 @@ final class APIService {
 
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60
+        request.timeoutInterval = APIConstants.requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await session.backendData(for: request)
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
         } catch {
@@ -165,7 +164,7 @@ final class APIService {
         ]
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.httpMethod = "POST"
-        request.timeoutInterval = 90
+        request.timeoutInterval = APIConstants.requestTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let account {
             body["resume_id"] = account.resumeId.uuidString.lowercased()
@@ -177,7 +176,7 @@ final class APIService {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await session.backendData(for: request)
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
         } catch {
@@ -215,7 +214,7 @@ final class APIService {
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60 // allow for a backend cold start
+        request.timeoutInterval = APIConstants.requestTimeout // allow for a backend cold start
         
         let boundary = UUID().uuidString
         request.setValue(
@@ -237,9 +236,11 @@ final class APIService {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         request.httpBody = body
         
+        BackendStatus.shared.requestStarted()
         session.dataTask(with: request) { data, response, error in
             
             Task { @MainActor in
+                BackendStatus.shared.requestFinished(response)
                 
                 if let error = error {
                     completion(.failure(error))

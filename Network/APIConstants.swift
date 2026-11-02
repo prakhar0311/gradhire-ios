@@ -23,5 +23,12 @@ nonisolated enum APIConstants {
     static let jobsForResume = "\(baseURL)/jobs/for-resume"
     static let newGradJobs = "\(baseURL)/jobs/new-grad"
     static let jobsMatch = "\(baseURL)/jobs/match"
+
+    // MARK: - Timeouts
+    // The free-tier backend can take about a minute to wake from sleep, then
+    // still has to do the work: wait up to 90s for it to answer, 3 minutes
+    // for the whole request.
+    static let requestTimeout: TimeInterval = 90
+    static let resourceTimeout: TimeInterval = 180
 }
 

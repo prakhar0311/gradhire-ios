@@ -650,11 +650,15 @@ private struct NewMatchesSection: View {
     let phase: MatchesPhase
 
     @EnvironmentObject private var router: AppRouter
+    @StateObject private var backend = BackendStatus.shared
 
     var body: some View {
         DashboardCard(title: "NEW MATCHES FOR YOU", actionTitle: totalMatches > 0 ? "See all" : nil, onAction: seeAll) {
             switch phase {
             case .loading:
+                if backend.isWaking {
+                    WakingNotice()
+                }
                 SkeletonLines(count: 3)
             case .failed(let retry):
                 RetryLine(text: "Couldn't load your matches.", retry: retry)

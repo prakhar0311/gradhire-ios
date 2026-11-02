@@ -84,6 +84,7 @@ extension View {
 struct OptimizeProgressCard: View {
 
     let phase: OptimizeResumeViewModel.Phase
+    @StateObject private var backend = BackendStatus.shared
 
     private struct Step: Identifiable {
         let id: Int
@@ -110,6 +111,9 @@ struct OptimizeProgressCard: View {
     var body: some View {
         OptimizeCard(title: "OPTIMIZING", icon: "sparkles", tint: AppTheme.violet) {
             VStack(alignment: .leading, spacing: 14) {
+                if backend.isWaking {
+                    WakingNotice()
+                }
                 ForEach(steps) { step in
                     StepRow(title: step.title, detail: step.detail, state: state(of: step))
                 }
@@ -699,6 +703,7 @@ struct PDFPagesView: View {
 
 private struct PaperSkeleton: View {
     @State private var shimmer = false
+    @StateObject private var backend = BackendStatus.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -708,7 +713,7 @@ private struct PaperSkeleton: View {
             .overlay {
                 VStack(spacing: 8) {
                     ProgressView().tint(AppTheme.violet)
-                    Text("Preparing your one-page PDF…")
+                    Text(backend.isWaking ? "Getting things ready…" : "Preparing your one-page PDF…")
                         .font(.footnote)
                         .foregroundColor(.white.opacity(0.5))
                 }

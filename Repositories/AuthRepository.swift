@@ -176,7 +176,7 @@ nonisolated final class SupabaseAuthRepository: AuthRepository {
 
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        request.timeoutInterval = 60 // allow for a backend cold start
+        request.timeoutInterval = APIConstants.requestTimeout // allow for a backend cold start
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let appleAuthorizationCode {
@@ -188,7 +188,7 @@ nonisolated final class SupabaseAuthRepository: AuthRepository {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await URLSession.shared.backendData(for: request)
         } catch {
             throw JobAPIError.from(error)
         }

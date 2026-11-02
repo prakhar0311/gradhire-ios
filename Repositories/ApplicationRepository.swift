@@ -128,14 +128,14 @@ nonisolated final class SupabaseApplicationRepository: ApplicationRepository {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 60 // allow for a backend cold start
+        request.timeoutInterval = APIConstants.requestTimeout // allow for a backend cold start
         request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let response: URLResponse
         do {
-            (_, response) = try await URLSession.shared.data(for: request)
+            (_, response) = try await URLSession.shared.backendData(for: request)
         } catch {
             throw JobAPIError.from(error)
         }

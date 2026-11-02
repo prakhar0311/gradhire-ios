@@ -56,12 +56,11 @@ final class JobAPIService {
     static let shared = JobAPIService()
     private init() {}
 
-    // 60s per request / 90s total: the free-tier backend can take about a
-    // minute to wake up after being idle.
+    // Long enough for the free-tier backend to wake up (see APIConstants)
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 60
-        config.timeoutIntervalForResource = 90
+        config.timeoutIntervalForRequest = APIConstants.requestTimeout
+        config.timeoutIntervalForResource = APIConstants.resourceTimeout
         config.waitsForConnectivity = false
         return URLSession(configuration: config)
     }()
@@ -176,7 +175,7 @@ final class JobAPIService {
         let response: URLResponse
 
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await session.backendData(for: request)
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
         } catch {
