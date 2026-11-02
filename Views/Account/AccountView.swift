@@ -275,6 +275,17 @@ struct AccountView: View {
                 .foregroundColor(.white.opacity(0.3))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+
+            #if DEBUG
+            // Debug builds only: checks crash reporting end to end. Run the
+            // app from the home screen (not Xcode), tap, then reopen it.
+            Button("Send test crash (debug only)") {
+                fatalError("Crashlytics test crash")
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(.white.opacity(0.35))
+            .padding(.top, 8)
+            #endif
         }
     }
 

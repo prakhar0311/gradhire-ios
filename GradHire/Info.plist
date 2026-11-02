@@ -15,6 +15,14 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Firebase Analytics: no advertising ID, no ad personalization, no
+	     vendor ID (the app doesn't track; no ATT prompt). -->
+	<key>GOOGLE_ANALYTICS_ADID_COLLECTION_ENABLED</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED</key>
+	<false/>
 	<key>GIDClientID</key>
 	<string>$(GOOGLE_IOS_CLIENT_ID)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

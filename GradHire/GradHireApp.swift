@@ -21,7 +21,14 @@ struct GradHireApp: App {
     @StateObject private var router: AppRouter
     @StateObject private var session: AppSession // decides Welcome vs guest vs signed in
 
+    @Environment(\.scenePhase) private var scenePhase
+    /// app_opened: at launch and on each return from the background
+    @State private var countsAsOpen = true
+
     init() {
+        // Crashlytics and Analytics (does nothing without GoogleService-Info.plist)
+        Telemetry.configure()
+
         let supabase = SupabaseManager()
         _supabase = StateObject(wrappedValue: supabase)
         let auth = AuthViewModel(auth: supabase.auth)
@@ -74,6 +81,14 @@ struct GradHireApp: App {
                 .task { await session.start() }
                 // Google Sign-In returns to the app through its URL scheme
                 .onOpenURL { url in GoogleSignInHelper.handle(url) }
+                .onChange(of: scenePhase, initial: true) { _, phase in
+                    if phase == .background {
+                        countsAsOpen = true
+                    } else if phase == .active, countsAsOpen {
+                        countsAsOpen = false
+                        Telemetry.log(.appOpened)
+                    }
+                }
         }
     }
 }

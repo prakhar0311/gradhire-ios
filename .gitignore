@@ -15,3 +15,7 @@ GradHire.xcodeproj/project.xcworkspace/xcshareddata/*
 
 # Real Supabase URL and publishable key (see Config/Secrets.example.xcconfig)
 Config/Secrets.xcconfig
+
+# Firebase config for this app (see the Part 3 setup steps); kept out of
+# the public repo
+GradHire/GoogleService-Info.plist
