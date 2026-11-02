@@ -48,11 +48,16 @@ nonisolated struct MatchedJobRecord: Decodable, Sendable {
     let description: String?
     let applyUrl: String?
     let postedAt: Date?
+    // Only selected for For You's stored matches
+    var minYears: Double? = nil
+    var gradBatches: [Int]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description
         case applyUrl = "apply_url"
         case postedAt = "posted_at"
+        case minYears = "min_years"
+        case gradBatches = "grad_batches"
     }
 }
 

@@ -316,6 +316,20 @@ struct InputTests {
         #expect(JobSearchViewModel.clean(String(repeating: "x", count: 150))?.count == 100)
     }
 
+    @Test func experienceLabelShowsBatchOrYearsWhenKnown() throws {
+        func decode(_ extra: String) throws -> Job {
+            let json = #"{"id":"6F1C2A52-8D3E-4B7A-9C41-2F5E0D8B7A10","title":"Trainee","company":"A","location":"Pune","description":"d","applyURL":"https://x.com"\#(extra)}"#
+            return try Job.decoder.decode(Job.self, from: Data(json.utf8))
+        }
+        #expect(try decode(#","batches":[2026,2025],"minYears":0"#).experienceLabel == "Batch 2025/2026")
+        #expect(try decode(#","minYears":0.5"#).experienceLabel == "0–1 yrs")
+        #expect(try decode(#","minYears":1"#).experienceLabel == "0–1 yrs")
+        #expect(try decode(#","minYears":2"#).experienceLabel == nil)
+        #expect(try decode("").experienceLabel == nil)
+        // A malformed value never fails the list
+        #expect(try decode(#","minYears":"one","batches":"2025""#).experienceLabel == nil)
+    }
+
     @Test func onlyCompleteWebLinksCanBeOpened() {
         #expect(ApplyLinkButton<EmptyLabel>.applyURL("https://www.adzuna.in/details/1") != nil)
         #expect(ApplyLinkButton<EmptyLabel>.applyURL("  https://example.com/job  ") != nil)

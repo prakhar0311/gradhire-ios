@@ -94,7 +94,8 @@ nonisolated struct StoredMatchRecord: Decodable, Sendable {
             id: job.id, title: job.title, company: job.company ?? "", location: job.location ?? "",
             description: job.description ?? "", matchScore: matchScore, applyURL: job.applyUrl ?? "",
             postedAt: job.postedAt, contractTime: nil,
-            matchedSkills: matchedSkills, missingSkills: missingSkills
+            matchedSkills: matchedSkills, missingSkills: missingSkills,
+            minYears: job.minYears, batches: job.gradBatches
         )
     }
 }
@@ -310,7 +311,7 @@ nonisolated final class SupabaseResumeRepository: ResumeRepository {
         let client = try requireClient()
         return try await client
             .from("job_matches")
-            .select("match_score,matched_skills,missing_skills,jobs(id,title,company,location,description,apply_url,posted_at)")
+            .select("match_score,matched_skills,missing_skills,jobs(id,title,company,location,description,apply_url,posted_at,min_years,grad_batches)")
             .eq("resume_id", value: resumeId)
             .order("match_score", ascending: false)
             .limit(60)

@@ -145,10 +145,13 @@ private extension JobDetailView {
                 }
 
                 let status = tracker.status(for: job.id)
-                if status != nil || job.postedAgoText != nil {
+                if status != nil || job.experienceLabel != nil || job.postedAgoText != nil {
                     HStack(spacing: 6) {
                         if let status {
                             StatusBadge(status: status)
+                        }
+                        if let experience = job.experienceLabel {
+                            DarkTag(text: experience, teal: false)
                         }
                         if let contract = job.contractLabel {
                             DarkTag(text: contract, teal: false)

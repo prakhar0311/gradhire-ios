@@ -555,12 +555,15 @@ struct DarkJobCard: View {
                     .padding(.bottom, 6)
 
                 // Real metadata from the posting (shown only when Adzuna provides it)
-                if status != nil || job.contractLabel != nil || job.postedAgoText != nil {
+                if status != nil || job.experienceLabel != nil || job.contractLabel != nil || job.postedAgoText != nil {
                     HStack(spacing: 6) {
                         if let status {
                             StatusBadge(status: status)
                         }
-                        if let contract = job.contractLabel {
+                        // One posting tag fits beside the date: experience wins over contract
+                        if let experience = job.experienceLabel {
+                            DarkTag(text: experience, teal: false)
+                        } else if let contract = job.contractLabel {
                             DarkTag(text: contract, teal: false)
                         }
                         if let postedAgo = job.postedAgoText {

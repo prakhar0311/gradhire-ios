@@ -13,11 +13,16 @@ struct Job: Identifiable, Codable, Hashable {
     // Resume-matched jobs only: skills the job asks for that the resume has / lacks
     var matchedSkills: [String]? = nil
     var missingSkills: [String]? = nil
+    // From the fresher filter, when known: minimum years asked for and
+    // accepted graduation years
+    var minYears: Double? = nil
+    var batches: [Int]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, title, company, location, description
         case matchScore, applyURL, postedAt, contractTime
         case matchedSkills, missingSkills
+        case minYears, batches
     }
 }
 
@@ -40,6 +45,8 @@ extension Job {
         contractTime = try? container.decodeIfPresent(String.self, forKey: .contractTime)
         matchedSkills = try? container.decodeIfPresent([String].self, forKey: .matchedSkills)
         missingSkills = try? container.decodeIfPresent([String].self, forKey: .missingSkills)
+        minYears = try? container.decodeIfPresent(Double.self, forKey: .minYears)
+        batches = try? container.decodeIfPresent([Int].self, forKey: .batches)
     }
 }
 
@@ -63,6 +70,17 @@ extension Job {
         case 30..<60: return "Posted 1 month ago"
         default:      return "Posted \(days / 30) months ago"
         }
+    }
+
+    /// "Batch 2025/2026" or "0–1 yrs", when the posting says so.
+    var experienceLabel: String? {
+        if let batches, !batches.isEmpty {
+            return "Batch " + batches.sorted().map(String.init).joined(separator: "/")
+        }
+        if let minYears, minYears <= 1 {
+            return "0–1 yrs"
+        }
+        return nil
     }
 
     var contractLabel: String? {
