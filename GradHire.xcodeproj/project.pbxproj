@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */; };
-		F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */; };
-		F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */; };
-		F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */; };
-		F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */; };
-		F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */; };
 		F40D62562F28DDC4004651FB /* UploadResumeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62552F28DDC4004651FB /* UploadResumeView.swift */; };
 		F40D62582F28E03E004651FB /* Job.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62572F28E03E004651FB /* Job.swift */; };
 		F40D625A2F28E065004651FB /* JobListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40D62592F28E065004651FB /* JobListView.swift */; };
@@ -35,8 +29,6 @@
 		F4A1B0392FC0000100A1B0C1 /* ApplicationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0382FC0000100A1B0C1 /* ApplicationRepository.swift */; };
 		F4A1B0422FC0000100A1B0C1 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0412FC0000100A1B0C1 /* GoogleSignIn */; };
 		F4A1B0442FC0000100A1B0C1 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0432FC0000100A1B0C1 /* GoogleSignInSwift */; };
-		F4A1B0A22FC0000100A1B0C1 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A12FC0000100A1B0C1 /* FirebaseAnalyticsCore */; };
-		F4A1B0A42FC0000100A1B0C1 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A32FC0000100A1B0C1 /* FirebaseCrashlytics */; };
 		F4A1B0612FC0000100A1B0C1 /* AuthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0602FC0000100A1B0C1 /* AuthRepository.swift */; };
 		F4A1B0632FC0000100A1B0C1 /* SignInProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0622FC0000100A1B0C1 /* SignInProviders.swift */; };
 		F4A1B0652FC0000100A1B0C1 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0642FC0000100A1B0C1 /* AuthViewModel.swift */; };
@@ -56,8 +48,16 @@
 		F4A1B0832FC0000100A1B0C1 /* AppBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */; };
 		F4A1B0852FC0000100A1B0C1 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0842FC0000100A1B0C1 /* AppSession.swift */; };
 		F4A1B0872FC0000100A1B0C1 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0862FC0000100A1B0C1 /* WelcomeView.swift */; };
-		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
+		F4A1B08A2FC0000100A1B0C1 /* JobSearchViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */; };
+		F4A1B08C2FC0000100A1B0C1 /* JobSearchViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */; };
+		F4A1B08E2FC0000100A1B0C1 /* ApplyLinkButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */; };
+		F4A1B0902FC0000100A1B0C1 /* SavedResumesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */; };
+		F4A1B0922FC0000100A1B0C1 /* SavedResumesViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */; };
+		F4A1B0942FC0000100A1B0C1 /* OptimizeResumeComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */; };
+		F4A1B0A22FC0000100A1B0C1 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A12FC0000100A1B0C1 /* FirebaseAnalyticsCore */; };
+		F4A1B0A42FC0000100A1B0C1 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = F4A1B0A32FC0000100A1B0C1 /* FirebaseCrashlytics */; };
 		F4A1B0A72FC0000100A1B0C1 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4A1B0A62FC0000100A1B0C1 /* Telemetry.swift */; };
+		F4C820522F34E1390068DBAA /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C820512F34E1390068DBAA /* NetworkMonitor.swift */; };
 		F4DF0DC02F2DCD4600961C4A /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */; };
 		F4DF0DC32F2DDD8C00961C4A /* BookMarkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */; };
 		F4F06FBD2F2F3F940056BD2B /* APIConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */; };
@@ -82,12 +82,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeComponents.swift; sourceTree = "<group>"; };
-		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
-		F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViewModel.swift; sourceTree = "<group>"; };
-		F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyLinkButton.swift; sourceTree = "<group>"; };
-		F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViews.swift; sourceTree = "<group>"; };
-		F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViewModel.swift; sourceTree = "<group>"; };
 		F40D62272F28DCA7004651FB /* GradHire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GradHire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40D62342F28DCA8004651FB /* GradHireTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40D623E2F28DCA8004651FB /* GradHireUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GradHireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -132,8 +126,14 @@
 		F4A1B0822FC0000100A1B0C1 /* AppBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBackground.swift; sourceTree = "<group>"; };
 		F4A1B0842FC0000100A1B0C1 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
 		F4A1B0862FC0000100A1B0C1 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
-		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
+		F4A1B0892FC0000100A1B0C1 /* JobSearchViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViewModel.swift; sourceTree = "<group>"; };
+		F4A1B08B2FC0000100A1B0C1 /* JobSearchViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JobSearchViews.swift; sourceTree = "<group>"; };
+		F4A1B08D2FC0000100A1B0C1 /* ApplyLinkButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyLinkButton.swift; sourceTree = "<group>"; };
+		F4A1B08F2FC0000100A1B0C1 /* SavedResumesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViewModel.swift; sourceTree = "<group>"; };
+		F4A1B0912FC0000100A1B0C1 /* SavedResumesViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedResumesViews.swift; sourceTree = "<group>"; };
+		F4A1B0932FC0000100A1B0C1 /* OptimizeResumeComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimizeResumeComponents.swift; sourceTree = "<group>"; };
 		F4A1B0A62FC0000100A1B0C1 /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
+		F4C820512F34E1390068DBAA /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		F4DF0DBF2F2DCD4600961C4A /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		F4DF0DC22F2DDD8C00961C4A /* BookMarkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookMarkManager.swift; sourceTree = "<group>"; };
 		F4F06FBC2F2F3F940056BD2B /* APIConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConstants.swift; sourceTree = "<group>"; };
