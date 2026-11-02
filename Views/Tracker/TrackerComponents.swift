@@ -73,7 +73,10 @@ private struct BookmarkConfirmationDialog: ViewModifier {
         ) { confirmation in
             switch confirmation {
             case .removeWithNotes(let job):
-                Button("Remove", role: .destructive) { tracker.remove(job.id) }
+                Button("Remove", role: .destructive) {
+                    tracker.remove(job.id)
+                    Telemetry.log(.jobUnsaved)
+                }
             case .unbookmark(let job, _):
                 Button("Remove from saved", role: .destructive) { tracker.setBookmarked(false, for: job.id) }
             }

@@ -186,6 +186,7 @@ final class APIService {
 
         guard let http = response as? HTTPURLResponse else { throw JobAPIError.invalidResponse }
         guard (200...299).contains(http.statusCode) else {
+            if http.statusCode == 429 { Telemetry.log(.limitReached(limit: .aiUsage)) }
             // The server's own reason (rate limit, "couldn't rewrite reliably", ...)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let detail = json["detail"] as? String {

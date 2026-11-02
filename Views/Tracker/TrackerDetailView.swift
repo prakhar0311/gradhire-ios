@@ -199,7 +199,7 @@ struct TrackerDetailView: View {
     @ViewBuilder
     private func actions(_ item: TrackedApplication) -> some View {
         VStack(spacing: 10) {
-            ApplyLinkButton(job: item.job) {
+            ApplyLinkButton(job: item.job, source: .trackerDetail) {
                 actionLabel("Apply / View Posting", icon: "arrow.up.right.square.fill", prominent: true)
             }
 

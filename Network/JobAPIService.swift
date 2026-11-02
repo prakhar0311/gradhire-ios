@@ -188,6 +188,10 @@ final class JobAPIService {
         }
 
         guard (200...299).contains(http.statusCode) else {
+            if http.statusCode == 429 {
+                let isMatching = request.url?.path.contains("-resume") ?? false
+                Telemetry.log(.limitReached(limit: isMatching ? .jobMatching : .requests))
+            }
             // Forward FastAPI's "detail" message when it's a plain string
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let detail = json["detail"] as? String {

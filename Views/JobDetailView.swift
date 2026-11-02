@@ -64,6 +64,7 @@ struct JobDetailView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { Telemetry.log(.jobDetailViewed) }
         .toolbarBackground(
             AppTheme.base,
             for: .navigationBar

@@ -52,6 +52,8 @@ final class JobSearchViewModel: ObservableObject {
     /// Return key: search now and remember the query.
     func submit() {
         guard let query = Self.clean(text) else { return }
+        // Only the length: search text is never sent anywhere but our server
+        Telemetry.log(.jobSearch(queryLength: query.count))
         if query != activeQuery || state.isFailed { start(query) }
         addRecentSearch(query)
     }
@@ -99,6 +101,7 @@ final class JobSearchViewModel: ObservableObject {
             guard query == activeQuery else { return }
             if jobs.isEmpty {
                 state = .failed(JobAPIError.from(error).localizedDescription)
+                Telemetry.log(.errorShown(screen: .search, type: ErrorKind(JobAPIError.from(error))))
             } else {
                 refreshError = JobAPIError.from(error).localizedDescription
             }
@@ -201,6 +204,7 @@ final class JobSearchViewModel: ObservableObject {
             } catch {
                 guard !Task.isCancelled, query == activeQuery else { return }
                 state = .failed(JobAPIError.from(error).localizedDescription)
+                Telemetry.log(.errorShown(screen: .search, type: ErrorKind(JobAPIError.from(error))))
             }
         }
     }

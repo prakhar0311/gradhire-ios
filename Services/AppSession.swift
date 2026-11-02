@@ -44,7 +44,12 @@ final class AppSession: ObservableObject {
 
     @Published private(set) var phase: Phase = .launching
     @Published var signInRequest: SignInReason?
-    @Published var resumeLimitPrompt: ResumeLimitPrompt?
+    @Published var resumeLimitPrompt: ResumeLimitPrompt? {
+        didSet {
+            guard let resumeLimitPrompt, resumeLimitPrompt != oldValue else { return }
+            Telemetry.log(.limitReached(limit: resumeLimitPrompt == .originals ? .savedResumes : .tailoredVersions))
+        }
+    }
     /// The full "Your saved resumes" list, opened from anywhere (e.g. the limit sheet)
     @Published var showsSavedResumes = false
     /// Short confirmation shown at the top of the screen (a toast)
@@ -199,6 +204,7 @@ final class AppSession: ObservableObject {
     // MARK: Guest
 
     func continueAsGuest() {
+        Telemetry.log(.guestContinued)
         welcomeMessage = nil
         search.signedOut()
         router.reset(for: .guest)

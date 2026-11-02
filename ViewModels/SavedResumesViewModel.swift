@@ -44,6 +44,7 @@ final class SavedResumesViewModel: ObservableObject {
         guard busyId == nil, resume.hasFile else { return }
         run(resume) { [weak self] in
             self?.shareURL = try await self?.temporaryPDF(of: resume, using: manager)
+            Telemetry.log(.resumeDownloaded(source: .savedResumes))
         }
     }
 
@@ -84,6 +85,7 @@ final class SavedResumesViewModel: ObservableObject {
         guard busyId == nil else { return }
         run(resume) {
             try await manager.setActive(resume)
+            Telemetry.log(.resumeSetActive)
         }
     }
 
@@ -136,6 +138,7 @@ final class SavedResumesViewModel: ObservableObject {
                 try await work()
             } catch {
                 errorMessage = Self.message(for: error)
+                Telemetry.log(.errorShown(screen: .savedResumes, type: ErrorKind(error)))
             }
         }
     }

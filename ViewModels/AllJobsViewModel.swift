@@ -61,6 +61,7 @@ final class AllJobsViewModel: ObservableObject {
         } catch {
             if jobs.isEmpty {
                 state = .failed(JobAPIError.from(error).localizedDescription)
+                Telemetry.log(.errorShown(screen: .allJobs, type: ErrorKind(JobAPIError.from(error))))
             } else {
                 refreshError = JobAPIError.from(error).localizedDescription
             }
@@ -94,6 +95,7 @@ final class AllJobsViewModel: ObservableObject {
             guard !Task.isCancelled, let self, self.state == .loading else { return }
             self.task?.cancel()
             self.state = .failed("This is taking too long. Check your connection and try again.")
+            Telemetry.log(.errorShown(screen: .allJobs, type: .timeout))
         }
         isLoadingMore = false
         loadMoreError = nil
@@ -108,6 +110,7 @@ final class AllJobsViewModel: ObservableObject {
             } catch {
                 guard !Task.isCancelled else { return }
                 state = .failed(JobAPIError.from(error).localizedDescription)
+                Telemetry.log(.errorShown(screen: .allJobs, type: ErrorKind(JobAPIError.from(error))))
             }
         }
     }

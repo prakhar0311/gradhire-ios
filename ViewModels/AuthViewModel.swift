@@ -13,9 +13,19 @@ final class AuthViewModel: ObservableObject {
         case loading
         case signedOut
         case signedIn(AuthUser)
+
+        var userId: UUID? {
+            if case .signedIn(let user) = self { return user.id }
+            return nil
+        }
     }
 
-    @Published private(set) var state: State
+    @Published private(set) var state: State {
+        didSet {
+            // Crash reports carry the signed-in user's id; cleared on sign-out
+            if user?.id != oldValue.userId { Telemetry.setUser(user?.id) }
+        }
+    }
     @Published private(set) var isWorking = false
     @Published var errorMessage: String?
 
@@ -42,6 +52,7 @@ final class AuthViewModel: ObservableObject {
     init(auth: any AuthRepository) {
         self.auth = auth
         self.state = auth.currentUser().map { .signedIn($0) } ?? (auth.isConfigured ? .loading : .signedOut)
+        Telemetry.setUser(state.userId)
     }
 
     /// Follows Supabase auth changes (stored session on launch, sign-in,
@@ -115,6 +126,7 @@ final class AuthViewModel: ObservableObject {
         case .failure(let error):
             if !AppleSignInNonce.isCancellation(error) {
                 errorMessage = message(for: error)
+                Telemetry.log(.errorShown(screen: .signIn, type: ErrorKind(error)))
             }
 
         case .success(let authorization):
@@ -125,6 +137,7 @@ final class AuthViewModel: ObservableObject {
                 let nonce = appleNonce
             else {
                 errorMessage = AuthFlowError.missingToken.localizedDescription
+                Telemetry.log(.errorShown(screen: .signIn, type: .unknown))
                 return
             }
 
@@ -147,6 +160,7 @@ final class AuthViewModel: ObservableObject {
                 didSignIn(user)
             } catch {
                 errorMessage = message(for: error)
+                Telemetry.log(.errorShown(screen: .signIn, type: ErrorKind(error)))
             }
         }
     }
@@ -164,6 +178,7 @@ final class AuthViewModel: ObservableObject {
         } catch {
             if !GoogleSignInHelper.isCancellation(error) {
                 errorMessage = message(for: error)
+                Telemetry.log(.errorShown(screen: .signIn, type: ErrorKind(error)))
             }
         }
     }
@@ -171,6 +186,7 @@ final class AuthViewModel: ObservableObject {
     private func didSignIn(_ user: AuthUser) {
         lastSignOutReason = nil
         state = .signedIn(user)
+        Telemetry.log(.signInCompleted(provider: .init(user.provider)))
     }
 
     // MARK: Sign Out / Delete
@@ -182,6 +198,7 @@ final class AuthViewModel: ObservableObject {
         GoogleSignInHelper.signOut()
         state = .signedOut
         isWorking = false
+        Telemetry.log(.signOut)
     }
 
     /// Returns true when the account was deleted. Apple users confirm with
@@ -197,6 +214,7 @@ final class AuthViewModel: ObservableObject {
             } catch {
                 if !AppleSignInNonce.isCancellation(error) {
                     errorMessage = message(for: error)
+                    Telemetry.log(.errorShown(screen: .account, type: ErrorKind(error)))
                 }
                 return false
             }
@@ -210,9 +228,11 @@ final class AuthViewModel: ObservableObject {
             lastSignOutReason = .deleted
             GoogleSignInHelper.signOut()
             state = .signedOut
+            Telemetry.log(.accountDeleted)
             return true
         } catch {
             errorMessage = message(for: error)
+            Telemetry.log(.errorShown(screen: .account, type: ErrorKind(error)))
             return false
         }
     }

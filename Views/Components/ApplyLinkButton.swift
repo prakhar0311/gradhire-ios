@@ -15,6 +15,8 @@ struct ApplyLinkButton<Label: View>: View {
 
     let job: Job
     var opensIn: Destination = .inAppSheet
+    /// Which screen the button is on (analytics only)
+    var source: AnalyticsEvent.ApplySource = .jobDetail
     @ViewBuilder let label: () -> Label
 
     @Environment(\.openURL) private var openURL
@@ -45,11 +47,13 @@ struct ApplyLinkButton<Label: View>: View {
 
         switch opensIn {
         case .inAppSheet:
+            Telemetry.log(.applyTapped(source: source))
             tracker.applyOpened(job, externally: false)
             sheetURL = url
         case .browser:
             guard !isOpening else { return }
             isOpening = true
+            Telemetry.log(.applyTapped(source: source))
             tracker.applyOpened(job, externally: true)
             openURL(url) { accepted in
                 isOpening = false

@@ -130,6 +130,7 @@ final class OptimizeResumeViewModel: ObservableObject {
     ) {
         guard let resumeText, !resumeText.isEmpty else {
             phase = .failed("We couldn't find your resume's text. Upload your resume again.")
+            Telemetry.log(.errorShown(screen: .optimize, type: .unknown))
             return
         }
 
@@ -142,6 +143,7 @@ final class OptimizeResumeViewModel: ObservableObject {
 
         guard isConnected else {
             phase = .failed(JobAPIError.offline.localizedDescription)
+            Telemetry.log(.errorShown(screen: .optimize, type: .offline))
             return
         }
 
@@ -173,11 +175,13 @@ final class OptimizeResumeViewModel: ObservableObject {
                 guard !Task.isCancelled else { return }
                 Self.cache[key] = result
                 show(result, isNew: true)
+                Telemetry.log(.resumeOptimized(scoreBefore: result.scoreBefore.total, scoreAfter: result.scoreAfter.total))
             } catch is CancellationError {
                 return
             } catch {
                 guard !Task.isCancelled else { return }
                 phase = .failed(JobAPIError.from(error).localizedDescription)
+                Telemetry.log(.errorShown(screen: .optimize, type: ErrorKind(error)))
             }
         }
     }

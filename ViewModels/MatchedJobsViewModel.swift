@@ -19,7 +19,9 @@ final class MatchedJobsViewModel: ObservableObject {
     @Published private(set) var state: JobsLoadState = .idle
 
     // Lives with the app-level view model, so it survives job detail and back
-    @Published var sort: JobSort = .bestMatch
+    @Published var sort: JobSort = .bestMatch {
+        didSet { if sort != oldValue { Telemetry.log(.jobFilterUsed(filter: .sort)) } }
+    }
 
     /// Guests: the uploaded PDF is matched directly.
     private var resumeData: Data?
@@ -197,6 +199,7 @@ final class MatchedJobsViewModel: ObservableObject {
             guard !Task.isCancelled, let self, self.state == .loading else { return }
             self.task?.cancel()
             self.state = .failed("This is taking too long. Check your connection and try again.")
+            Telemetry.log(.errorShown(screen: .forYou, type: .timeout))
         }
     }
 
@@ -211,5 +214,6 @@ final class MatchedJobsViewModel: ObservableObject {
 
     private func fail(with error: Error) {
         state = .failed(JobAPIError.from(error).localizedDescription)
+        Telemetry.log(.errorShown(screen: .forYou, type: ErrorKind(JobAPIError.from(error))))
     }
 }

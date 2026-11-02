@@ -192,11 +192,13 @@ struct UploadResumeView: View {
             defer { isSaving = false }
             do {
                 try await resumeManager.saveNewOriginal(pdfData: data, text: text, fileName: fileName)
+                Telemetry.log(.resumeUploaded(account: .signedIn))
                 showMatches()
             } catch ResumeSaveError.originalLimit {
                 session.resumeLimitPrompt = .originals
             } catch {
                 errorMessage = "Your resume couldn't be saved to your account. \(JobAPIError.from(error).localizedDescription)"
+                Telemetry.log(.errorShown(screen: .upload, type: ErrorKind(error)))
                 showRetry = true
             }
         }
@@ -392,6 +394,7 @@ struct UploadResumeView: View {
 
         case .failure:
             errorMessage = "Couldn't open that file. Please choose a PDF and try again."
+            Telemetry.log(.errorShown(screen: .upload, type: .unknown))
             showRetry = true
 
         case .success(let urls):
@@ -400,6 +403,7 @@ struct UploadResumeView: View {
 
             guard network.isConnected else {
                 errorMessage = JobAPIError.offline.localizedDescription
+                Telemetry.log(.errorShown(screen: .upload, type: .offline))
                 showRetry = true
                 return
             }
@@ -411,6 +415,7 @@ struct UploadResumeView: View {
             guard size <= Self.maxFileSize else {
                 if canAccess { url.stopAccessingSecurityScopedResource() }
                 errorMessage = "This PDF is larger than 5 MB. Upload a smaller file."
+                Telemetry.log(.errorShown(screen: .upload, type: .invalidPDF))
                 showRetry = true
                 return
             }
@@ -419,6 +424,7 @@ struct UploadResumeView: View {
 
             guard let data, !data.isEmpty else {
                 errorMessage = "GradHire couldn't read that file. Save it to the Files app first, then try again."
+                Telemetry.log(.errorShown(screen: .upload, type: .invalidPDF))
                 showRetry = true
                 return
             }
@@ -440,6 +446,8 @@ struct UploadResumeView: View {
                         errorMessage = error is URLError
                             ? JobAPIError.from(error).localizedDescription
                             : error.localizedDescription
+                        // Not a network error: the server rejected the file
+                        Telemetry.log(.errorShown(screen: .upload, type: error is URLError ? ErrorKind(error) : .invalidPDF))
                         showRetry = true
 
                     case .success(let resumeText):
@@ -447,6 +455,7 @@ struct UploadResumeView: View {
                             saveToAccount(pdfData: data, text: resumeText, fileName: fileName)
                         } else {
                             resumeManager.replace(pdfData: data, text: resumeText, fileName: fileName)
+                            Telemetry.log(.resumeUploaded(account: .guest))
                             matchedJobs.load(resumeData: data, country: router.country)
                             showMatches()
                         }

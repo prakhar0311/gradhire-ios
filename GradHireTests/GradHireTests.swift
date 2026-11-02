@@ -340,5 +340,78 @@ struct InputTests {
     }
 }
 
+// MARK: - Analytics Events
+
+@MainActor
+struct AnalyticsEventTests {
+
+    /// One of every event, with sample values.
+    static let allEvents: [AnalyticsEvent] = [
+        .appOpened, .guestContinued, .signInCompleted(provider: .apple), .signOut, .accountDeleted,
+        .resumeUploaded(account: .guest), .resumeOptimized(scoreBefore: 48, scoreAfter: 71), .skillConfirmed,
+        .resumeDownloaded(source: .optimize), .resumeSetActive, .jobsViewed(tab: .forYou),
+        .jobSearch(queryLength: 6), .jobFilterUsed(filter: .sort), .jobDetailViewed, .jobSaved, .jobUnsaved,
+        .applyTapped(source: .optimizedResume), .applicationMarkedApplied(source: .prompt),
+        .trackerStatusChanged(newStatus: .interviewing), .limitReached(limit: .tailoredVersions),
+        .errorShown(screen: .forYou, type: .offline),
+    ]
+
+    // Firebase reserves these names and prefixes
+    static let reserved: Set<String> = [
+        "ad_activeview", "ad_click", "ad_exposure", "ad_impression", "ad_query", "adunit_exposure", "app_clear_data",
+        "app_exception", "app_install", "app_remove", "app_store_refund", "app_update", "app_upgrade", "error",
+        "first_open", "first_visit", "in_app_purchase", "notification_dismiss", "notification_foreground",
+        "notification_open", "notification_receive", "os_update", "screen_view", "session_start", "user_engagement",
+    ]
+
+    private static func isSnakeCase(_ text: String, max: Int) -> Bool {
+        text.count <= max && text.range(of: "^[a-z][a-z0-9_]*$", options: .regularExpression) != nil
+    }
+
+    @Test func eventNamesAreValidAndUnique() {
+        let names = Self.allEvents.map(\.name)
+        #expect(Set(names).count == names.count)
+        for name in names {
+            #expect(Self.isSnakeCase(name, max: 40), "\(name)")
+            #expect(!Self.reserved.contains(name), "\(name)")
+            #expect(!["firebase_", "google_", "ga_"].contains { name.hasPrefix($0) }, "\(name)")
+        }
+    }
+
+    /// No free text can reach Analytics: every value is a number or one of
+    /// the fixed snake_case values.
+    @Test func parametersHoldOnlyFixedValuesOrNumbers() {
+        for event in Self.allEvents {
+            for (key, value) in event.parameters {
+                #expect(Self.isSnakeCase(key, max: 40), "\(event.name).\(key)")
+                if let text = value as? String {
+                    #expect(Self.isSnakeCase(text, max: 30), "\(event.name).\(key) = \(text)")
+                } else {
+                    #expect(value is Int, "\(event.name).\(key)")
+                }
+            }
+        }
+        #expect(AnalyticsEvent.jobSearch(queryLength: 6).parameters == ["query_length": 6])
+        #expect(AnalyticsEvent.signInCompleted(provider: .init("email")).parameters == ["provider": "other"])
+    }
+
+    @Test func errorKindsComeFromTheErrorNotItsMessage() {
+        #expect(ErrorKind(URLError(.notConnectedToInternet)) == .offline)
+        #expect(ErrorKind(JobAPIError.timedOut) == .timeout)
+        #expect(ErrorKind(JobAPIError.server("Anything the server said")) == .server)
+        #expect(ErrorKind(ResumeSaveError.versionLimit) == .limit)
+        #expect(ErrorKind(CocoaError(.fileReadCorruptFile)) == .unknown)
+    }
+
+    /// Tests run without Firebase: logging and the user id are no-ops.
+    @Test func withoutFirebaseEverythingIsANoOp() {
+        Telemetry.configure()
+        #expect(!Telemetry.isEnabled)
+        Telemetry.log(.appOpened)
+        Telemetry.setUser(UUID())
+        Telemetry.setUser(nil)
+    }
+}
+
 import SwiftUI
 private typealias EmptyLabel = EmptyView

@@ -136,6 +136,7 @@ final class TrackerStore: ObservableObject {
         }
         guard let status = status(for: job.id) else {
             save(job)
+            Telemetry.log(.jobSaved)
             return nil
         }
         guard isBookmarked(job.id) else {
@@ -145,6 +146,7 @@ final class TrackerStore: ObservableObject {
         guard status == .saved else { return .unbookmark(job, status) }
         if let notes = item(for: job.id)?.notes, !notes.isEmpty { return .removeWithNotes(job) }
         remove(job.id)
+        Telemetry.log(.jobUnsaved)
         return nil
     }
 
@@ -154,6 +156,7 @@ final class TrackerStore: ObservableObject {
         model.isBookmarked = isBookmarked
         model.touch()
         commit()
+        Telemetry.log(isBookmarked ? .jobSaved : .jobUnsaved)
     }
 
     /// `bookmarked: false` when the user didn't bookmark it ("Did you apply?
@@ -180,11 +183,20 @@ final class TrackerStore: ObservableObject {
         commit()
     }
 
+    /// The user changed a status in the tracker.
     func setStatus(_ status: ApplicationStatus, for jobId: UUID) {
-        guard let model = model(for: jobId), model.syncState != .pendingDelete else { return }
+        guard changeStatus(status, for: jobId) else { return }
+        Telemetry.log(.trackerStatusChanged(newStatus: status))
+        if status == .applied { Telemetry.log(.applicationMarkedApplied(source: .tracker)) }
+    }
+
+    @discardableResult
+    private func changeStatus(_ status: ApplicationStatus, for jobId: UUID) -> Bool {
+        guard let model = model(for: jobId), model.syncState != .pendingDelete, model.status != status else { return false }
         setStatus(status, on: model)
         model.touch()
         commit()
+        return true
     }
 
     func setNotes(_ notes: String, for jobId: UUID) {
@@ -272,11 +284,12 @@ final class TrackerStore: ObservableObject {
         applyPrompt = nil
         guard applied else { return }
         if status(for: job.id) != nil {
-            setStatus(.applied, for: job.id)
+            changeStatus(.applied, for: job.id)
         } else {
             // Tracked as Applied; not bookmarked, the user never saved it
             save(job, status: .applied, bookmarked: false)
         }
+        Telemetry.log(.applicationMarkedApplied(source: .prompt))
     }
 
     // MARK: History
@@ -331,6 +344,8 @@ final class TrackerStore: ObservableObject {
             hasSynced = true
         } catch {
             guard userId == owner else { return }
+            // Once per failure streak, not on every retry
+            if syncError == nil { Telemetry.log(.errorShown(screen: .tracker, type: ErrorKind(error))) }
             syncError = Self.message(for: error)
         }
         reload()

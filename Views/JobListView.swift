@@ -80,12 +80,18 @@ struct JobListView: View {
         .onAppear {
             search.setCountry(country)
             recover()
+            logJobsViewed()
         }
         .onChange(of: selectedTab) { _, tab in
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             searchFocused = false
             recover()
+            logJobsViewed()
         }
+    }
+
+    private func logJobsViewed() {
+        Telemetry.log(.jobsViewed(tab: selectedTab == .forYou ? .forYou : .allJobs))
     }
 
     /// Opening the tab (or switching to a list) restarts anything stuck or

@@ -269,7 +269,7 @@ private extension OptimizeResumeView {
                 .accessibilityLabel("Download resume")
 
                 // Opens the browser; "Did you apply?" when the user comes back
-                ApplyLinkButton(job: job, opensIn: .browser) {
+                ApplyLinkButton(job: job, opensIn: .browser, source: .optimizedResume) {
                     HStack(spacing: 6) {
                         Text("Apply")
                             .lineLimit(1)
@@ -351,6 +351,7 @@ private extension OptimizeResumeView {
                 )
                 if replacingOldest { session.notice = "Saved. Your oldest tailored version was replaced." }
             } catch ResumeSaveError.versionLimit {
+                Telemetry.log(.limitReached(limit: .tailoredVersions))
                 pendingTailored = pending
             } catch {
                 session.notice = "This tailored version couldn't be saved to your account."
@@ -381,6 +382,7 @@ private extension OptimizeResumeView {
             try pdf.write(to: url, options: .completeFileProtection)
             sharedFileURL = url
             downloadedFileURL = url
+            Telemetry.log(.resumeDownloaded(source: .optimize))
         } catch {
             downloadErrorMessage = "Couldn't prepare the file on this device. Try again."
         }
